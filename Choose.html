@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>游戏导航</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#080812;--card:rgba(255,255,255,.05);--card-hover:rgba(255,255,255,.1);
+--text:#fff;--text2:rgba(255,255,255,.72);--text3:rgba(255,255,255,.42);
+--border:rgba(255,255,255,.07);--accent:#7c3aed;--accent2:#a78bfa;--accent3:#c4b5fd;
+--glow:rgba(124,58,237,.5);--radius:12px;--t:all .25s ease}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.6}
+a{text-decoration:none;color:inherit}
+button{border:none;cursor:pointer;font-family:inherit}
+.container{max-width:1140px;margin:0 auto;padding:0 20px}
+
+/* 背景 */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:radial-gradient(ellipse at 50% -20%,#1a0a3e 0%,#080812 60%),#080812}
+.bg::before{content:'';position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 8% 15%,rgba(167,139,250,.35) 0%,transparent 100%),radial-gradient(1px 1px at 25% 50%,rgba(139,92,246,.25) 0%,transparent 100%),radial-gradient(1px 1px at 55% 25%,rgba(196,181,253,.3) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 80% 65%,rgba(124,58,237,.3) 0%,transparent 100%),radial-gradient(1px 1px at 40% 85%,rgba(167,139,250,.2) 0%,transparent 100%),radial-gradient(1px 1px at 90% 90%,rgba(196,181,253,.25) 0%,transparent 100%);animation:twinkle 6s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:1}50%{opacity:.5}}
+.bg::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,rgba(124,58,237,.03) 60deg,transparent 120deg,rgba(167,139,250,.02) 200deg,transparent 280deg,rgba(124,58,237,.03) 340deg,transparent 360deg);animation:spin 60s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 顶部 */
+.hero{padding:56px 0 36px;text-align:center}
+.brand{display:inline-flex;align-items:center;gap:12px;margin-bottom:10px}
+.brand-icon{font-size:40px;filter:drop-shadow(0 0 20px var(--glow))}
+.brand-name{font-size:36px;font-weight:900;letter-spacing:2px;background:linear-gradient(135deg,#fff 30%,var(--accent3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.brand-sub{font-size:13px;color:var(--text3);letter-spacing:3px;margin-bottom:28px}
+
+/* 快捷链接 */
+.quick-links{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.ql{padding:6px 14px;background:rgba(124,58,237,.1);border-radius:8px;color:var(--text2);font-size:12px;font-weight:500;transition:var(--t);border:1px solid rgba(124,58,237,.12)}
+.ql:hover{background:rgba(124,58,237,.22);color:var(--text);transform:translateY(-2px);box-shadow:0 4px 12px rgba(124,58,237,.15)}
+
+/* 分类筛选 */
+.main{padding:16px 0 50px}
+.filters{display:flex;justify-content:center;gap:6px;margin-bottom:32px;flex-wrap:wrap}
+.filter{padding:7px 16px;border-radius:8px;background:rgba(255,255,255,.03);color:var(--text2);font-size:12px;font-weight:500;transition:var(--t);border:1px solid var(--border)}
+.filter:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.filter.active{background:linear-gradient(135deg,var(--accent),#6d28d9);color:#fff;border-color:transparent;box-shadow:0 3px 12px rgba(124,58,237,.3)}
+
+/* 分区 */
+.section{margin-bottom:36px;animation:fadeUp .4s ease forwards}
+.section.hidden{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(124,58,237,.12)}
+.section-icon{font-size:20px}
+.section-title{font-size:16px;font-weight:700;color:var(--text)}
+.section-count{font-size:11px;color:var(--text3);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:10px;margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+
+/* 卡片 */
+.card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);transition:var(--t);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,58,237,.06),transparent 60%);opacity:0;transition:var(--t)}
+.card:hover{transform:translateY(-2px);background:var(--card-hover);border-color:rgba(124,58,237,.25);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.card:hover::before{opacity:1}
+.card:hover .icon{transform:scale(1.1)}
+.card:hover .arrow{opacity:1;transform:translateX(0)}
+.icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;transition:var(--t)}
+.info{flex:1;min-width:0}
+.info h3{font-size:13px;font-weight:600;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info p{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arrow{opacity:0;transform:translateX(-4px);transition:var(--t);color:var(--accent3);font-size:14px;flex-shrink:0}
+
+/* 页脚 */
+.footer{padding:20px 0;text-align:center;color:var(--text3);font-size:11px;border-top:1px solid var(--border)}
+
+/* 回到顶部 */
+.top-btn{position:fixed;bottom:20px;right:20px;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:var(--t);z-index:100}
+.top-btn.show{opacity:1;visibility:visible}
+.top-btn:hover{transform:scale(1.1)}
+
+/* 滚动条 */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:rgba(124,58,237,.2);border-radius:3px}
+
+/* 响应式 */
+@media(max-width:640px){
+.hero{padding:36px 0 24px}
+.brand-name{font-size:26px}
+.brand-icon{font-size:30px}
+.grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.card{padding:10px 12px;gap:10px}
+.icon{width:34px;height:34px;font-size:16px;border-radius:8px}
+.section-title{font-size:14px}
+}
+@media(max-width:400px){
+.container{padding:0 12px}
+.grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<header class="hero">
+<div class="container">
+<div class="brand">
+<span class="brand-icon" id="brandIcon">🎮</span>
+<span class="brand-name" id="brandName">Hacker_Diary</span>
+</div>
+<p class="brand-sub" id="brandSub">玩家导航 · 一键抵达所有入口</p>
+
+<div class="quick-links" id="quickLinks"></div>
+</div>
+</header>
+
+<main class="main">
+<div class="container">
+<div class="filters" id="filters">
+<button class="filter active" data-cat="all">全部</button>
+</div>
+<div id="sections"></div>
+</div>
+</main>
+
+<footer class="footer">
+<div class="container">© 2026 游戏导航</div>
+</footer>
+
+<button class="top-btn" id="topBtn">
+<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<script>
+// ════════════════════════════════════════
+// 🎮 游戏信息 — 改这里换游戏名和图标
+// ════════════════════════════════════════
+const gameInfo = {
+name: 'Hacker_Diary',        // 游戏名称
+icon: '🎮',              // 品牌图标（emoji 或改 CSS 用图片）
+subtitle: '玩家导航 · 一键抵达所有入口', // 副标题
+};
+
+// ════════════════════════════════════════
+// 📂 分类配置
+// ════════════════════════════════════════
+const categories = [
+{ id: 'official',  name: '主页',     icon: '🏠' },
+{ id: 'community', name: '社区',     icon: '💬' },
+{ id: 'service',   name: '联系作者',     icon: '📧' },
+];
+
+// ════════════════════════════════════════
+// 🔗 导航链接 — 改成你游戏的实际地址
+// ════════════════════════════════════════
+const sites = [
+// ─── 官方 ───
+{ cat: 'official', name: '开始游戏',   desc: '从开头开始体验',   url: 'hello.html',          icon: '🌐', color: '#7c3aed' },
+{ cat: 'official', name: '开始欢迎界面',   desc: '看看欢迎界面',     url: 'hello.html',      icon: '📮', color: '#5b21b6' },
+{ cat: 'official', name: 'os界面',   desc: '看看os',       url: 'os.html',   icon: '💻', color: '#16a34a' },
+{ cat: 'official', name: '邮箱界面',   desc: '看看邮箱',       url: 'E_mail.html',    icon: '📧', color: '#e6162d' },
+
+// ─── 社区 ───
+{ cat: 'community', name: 'QQ频道',   desc: '闲着没事可以加一下',      url: 'https://community.example.com', icon: '💬', color: '#0891b2' },
+{ cat: 'community', name: 'QQ 群',      desc: '闲着没事可以加一下',      url: 'https://example.com/qqgroup',  icon: '🐧', color: '#12b7f5' },
+{ cat: 'community', name: 'kook频道',     desc: '闲着没事可以加一下',        url: 'https://reddit.com/r/xxx',     icon: '🔥', color: '#ff4500' },
+
+// ─── 联系 ───
+{ cat: 'service', name: 'b站',   desc: '暂时只有这一种渠道',     url: 'https://support.example.com',      icon: '📺', color: '#059669' },
+];
+
+// 顶部快捷入口
+const quickLinkCats = ['official', 'community', 'service'];
+
+// ════════════════════════════════════════
+// 🔧 渲染逻辑
+// ════════════════════════════════════════
+// 设置品牌
+document.getElementById('brandIcon').textContent = gameInfo.icon;
+document.getElementById('brandName').textContent = gameInfo.name;
+document.getElementById('brandSub').textContent = gameInfo.subtitle;
+document.title = `${'Hacker_Diary'} · 导航`;
+
+// 渲染快捷链接
+const qlBox = document.getElementById('quickLinks');
+quickLinkCats.forEach(catId => {
+const site = sites.find(s => s.cat === catId);
+if (!site) return;
+const a = document.createElement('a');
+a.href = site.url; a.target = '_blank'; a.rel = 'noopener';
+a.className = 'ql';
+a.innerHTML = `<span>${site.icon}</span> ${site.name}`;
+qlBox.appendChild(a);
+});
+
+// 渲染分类按钮
+const filtersBox = document.getElementById('filters');
+categories.forEach(cat => {
+const count = sites.filter(s => s.cat === cat.id).length;
+if (!count) return;
+const btn = document.createElement('button');
+btn.className = 'filter';
+btn.dataset.cat = cat.id;
+btn.textContent = `${cat.icon} ${cat.name}`;
+filtersBox.appendChild(btn);
+});
+
+// 渲染分区
+const sectionsBox = document.getElementById('sections');
+categories.forEach(cat => {
+const list = sites.filter(s => s.cat === cat.id);
+if (!list.length) return;
+const sec = document.createElement('div');
+sec.className = 'section';
+sec.dataset.cat = cat.id;
+
+const head = document.createElement('div');
+head.className = 'section-head';
+head.innerHTML = `<span class="section-icon">${cat.icon}</span><span class="section-title">${cat.name}</span><span class="section-count">${list.length}</span>`;
+sec.appendChild(head);
+
+const grid = document.createElement('div');
+grid.className = 'grid';
+list.forEach(site => {
+const a = document.createElement('a');
+a.href = site.url; a.target = '_blank'; a.rel = 'noopener';
+a.className = 'card';
+a.innerHTML = `<div class="icon" style="background:${site.color}25">${site.icon}</div><div class="info"><h3>${site.name}</h3><p>${site.desc}</p></div><span class="arrow">→</span>`;
+grid.appendChild(a);
+});
+sec.appendChild(grid);
+sectionsBox.appendChild(sec);
+});
+
+// 分类筛选
+const filterBtns = document.querySelectorAll('.filter');
+const sections = document.querySelectorAll('.section');
+filterBtns.forEach(btn => {
+btn.addEventListener('click', () => {
+filterBtns.forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+const cat = btn.dataset.cat;
+sections.forEach(sec => {
+if (cat === 'all' || sec.dataset.cat === cat) {
+sec.classList.remove('hidden');
+sec.style.animation = 'none'; sec.offsetHeight; sec.style.animation = null;
+} else sec.classList.add('hidden');
+});
+});
+});
+
+// 回到顶部
+const topBtn = document.getElementById('topBtn');
+window.addEventListener('scroll', () => topBtn.classList.toggle('show', window.scrollY > 300));
+topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// 欢迎语
+console.log(`%c🎮 ${gameInfo.name} 导航已就绪`, 'color:#7c3aed;font-size:16px;font-weight:bold;');
+</script>
+</body>
+</html>

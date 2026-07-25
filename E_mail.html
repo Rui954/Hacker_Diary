@@ -1,0 +1,2472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailBox · 邮箱系统</title>
+<style>
+  /* ============ CSS 变量 ============ */
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #a5b4fc;
+    --primary-bg: #eef2ff;
+    --secondary: #8b5cf6;
+    --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    --gradient-soft: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+    --bg: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-hover: #f1f5f9;
+    --bg-active: #eef2ff;
+    --text-1: #0f172a;
+    --text-2: #475569;
+    --text-3: #94a3b8;
+    --text-4: #cbd5e1;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.12);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,.18);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --sidebar-bg: #1e1b4b;
+    --sidebar-text: rgba(255,255,255,.7);
+    --sidebar-active: rgba(99,102,241,.4);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --star: #f59e0b;
+    --transition: all .2s cubic-bezier(.4,0,.2,1);
+    --transition-slow: all .35s cubic-bezier(.4,0,.2,1);
+  }
+
+  [data-theme="dark"] {
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --bg-hover: #334155;
+    --bg-active: #312e81;
+    --text-1: #f1f5f9;
+    --text-2: #cbd5e1;
+    --text-3: #64748b;
+    --text-4: #475569;
+    --border: #334155;
+    --border-light: #1e293b;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.3);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.4);
+    --primary-bg: #312e81;
+  }
+
+  /* ============ Reset ============ */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size:16px; }
+  body {
+    font-family: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    transition: background .3s, color .3s;
+  }
+  button { font-family: inherit; }
+  input, textarea, select { font-family: inherit; }
+  ::selection { background: var(--primary-light); color: #fff; }
+
+  /* ============ 滚动条 ============ */
+  ::-webkit-scrollbar { width: 5px; height:5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text-4); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  /* ============ 登录页 ============ */
+  .login-wrap {
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 70%, #6366f1 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .login-wrap::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(99,102,241,.3) 0%, transparent 70%);
+    top: -200px; left: -200px;
+    animation: float 8s ease-in-out infinite;
+  }
+  .login-wrap::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(139,92,246,.2) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    animation: float 10s ease-in-out infinite reverse;
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(30px,-30px) scale(1.05); }
+  }
+  .login-box {
+    position: relative;
+    background: rgba(255,255,255,.97);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-xl);
+    padding: 52px 44px 44px;
+    width: 440px;
+    box-shadow: var(--shadow-xl);
+    animation: fadeUp .6s ease;
+    z-index: 1;
+  }
+  [data-theme="dark"] .login-box { background: rgba(30,41,59,.97); }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(30px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+  .login-box .brand {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .login-box .brand-icon {
+    width: 64px; height: 64px;
+    background: var(--gradient);
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(99,102,241,.35);
+  }
+  .login-box h1 {
+    font-size: 26px;
+    font-weight: 800;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .login-box p.sub {
+    color: var(--text-3);
+    font-size: 14px;
+  }
+  .input-group { margin-bottom: 20px; }
+  .input-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 8px;
+  }
+  .input-wrapper {
+    position: relative;
+  }
+  .input-wrapper .iw-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text-3);
+    z-index: 1;
+  }
+  .input-wrapper input {
+    width: 100%;
+    padding: 13px 14px 13px 42px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    background: var(--bg-card);
+    color: var(--text-1);
+    transition: var(--transition);
+    outline: none;
+  }
+  .input-wrapper input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+  }
+  .input-wrapper .toggle-pwd {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-3);
+    padding: 4px;
+    border-radius: 4px;
+  }
+  .input-wrapper .toggle-pwd:hover { color: var(--text-2); background: var(--bg-hover); }
+  .login-box .login-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--gradient);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  .login-box .login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99,102,241,.35);
+  }
+  .login-box .login-btn:active { transform: translateY(0); }
+  .login-box .login-btn.loading {
+    color: transparent;
+    pointer-events: none;
+  }
+  .login-box .login-btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 22px; height: 22px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+  .login-tip {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--text-4);
+  }
+  .login-error {
+    display: none;
+    background: #fef2f2;
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 16px;
+    border: 1px solid #fecaca;
+  }
+  [data-theme="dark"] .login-error { background: #450a0a; border-color: #7f1d1d; }
+
+  /* ============ 主界面布局 ============ */
+  .app {
+    display: none;
+    height: 100vh;
+    animation: fadeIn .4s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+  /* ============ 侧边栏 ============ */
+  .sidebar {
+    width: 260px;
+    background: var(--sidebar-bg);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .sidebar .logo-area {
+    padding: 24px 28px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .sidebar .logo-icon {
+    width: 38px; height: 38px;
+    background: var(--gradient);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 12px rgba(99,102,241,.4);
+  }
+  .sidebar .logo-text {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .sidebar .user-card {
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    position: relative;
+  }
+  .sidebar .user-card .avatar-main {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(99,102,241,.3);
+    position: relative;
+  }
+  .sidebar .user-card .avatar-main .status-dot {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 12px; height: 12px;
+    background: var(--success);
+    border-radius: 50%;
+    border: 2px solid var(--sidebar-bg);
+  }
+  .sidebar .user-card .info { line-height: 1.4; min-width: 0; }
+  .sidebar .user-card .info .name {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar .user-card .info .email {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav { flex: 1; padding: 14px 12px; overflow-y: auto; }
+  .nav-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,.3);
+    padding: 12px 14px 6px;
+    font-weight: 700;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--sidebar-text);
+    margin-bottom: 2px;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+  }
+  .nav-item:hover {
+    background: rgba(255,255,255,.08);
+    color: #fff;
+  }
+  .nav-item.active {
+    background: var(--sidebar-active);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+  .nav-item .icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .nav-item .badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+  }
+  .nav-item .count {
+    margin-left: auto;
+    font-size: 12px;
+    color: rgba(255,255,255,.35);
+  }
+  .sidebar .footer {
+    padding: 16px 28px;
+    font-size: 12px;
+    color: rgba(255,255,255,.25);
+    border-top: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar .footer a {
+    color: rgba(255,255,255,.4);
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+  }
+  .sidebar .footer a:hover { color: #fff; }
+
+  /* ============ 右侧主区 ============ */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* ============ 顶栏 ============ */
+  .topbar {
+    height: 64px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .topbar .search {
+    flex: 1;
+    max-width: 560px;
+    position: relative;
+  }
+  .topbar .search .si {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    color: var(--text-3);
+  }
+  .topbar .search input {
+    width: 100%;
+    padding: 10px 16px 10px 42px;
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    font-size: 14px;
+    outline: none;
+    transition: var(--transition);
+    background: var(--bg);
+    color: var(--text-1);
+  }
+  .topbar .search input:focus {
+    border-color: var(--primary);
+    background: var(--bg-card);
+    box-shadow: 0 0 0 4px rgba(99,102,241,.1);
+  }
+  .topbar .search .clear-search {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-3);
+    display: none;
+    padding: 2px 6px;
+    border-radius: 50%;
+  }
+  .topbar .search .clear-search:hover { background: var(--bg-hover); color: var(--text-2); }
+  .topbar .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .topbar .actions .icon-btn {
+    width: 38px; height: 38px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    color: var(--text-2);
+  }
+  .topbar .actions .icon-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .topbar .actions .btn-primary {
+    background: var(--gradient);
+    color: #fff;
+    border: none;
+    padding: 9px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(99,102,241,.25);
+  }
+  .topbar .actions .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99,102,241,.35);
+  }
+
+  /* ============ 内容区 ============ */
+  .content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ============ 邮件列表 ============ */
+  .mail-list {
+    width: 380px;
+    border-right: 1px solid var(--border);
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .mail-list .toolbar {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .mail-list .toolbar .tbtn {
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 15px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+  }
+  .mail-list .toolbar .tbtn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border);
+  }
+  .mail-list .toolbar .tbtn:disabled {
+    opacity: .3;
+    cursor: not-allowed;
+  }
+  .mail-list .toolbar .spacer { flex: 1; }
+  .ml-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-light);
+    padding: 0 12px;
+    flex-shrink: 0;
+  }
+  .ml-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-3);
+    user-select: none;
+    transition: var(--transition);
+    font-weight: 500;
+  }
+  .ml-tab:hover { color: var(--text-2); }
+  .ml-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 700;
+  }
+  .ml-items { flex: 1; overflow-y: auto; }
+  .ml-item {
+    display: flex;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+  }
+  .ml-item:hover { background: var(--bg-hover); }
+  .ml-item.active {
+    background: var(--bg-active);
+    border-left: 3px solid var(--primary);
+    padding-left: 13px;
+  }
+  .ml-item.unread .ml-from { font-weight: 700; color: var(--text-1); }
+  .ml-item.unread .ml-subj { font-weight: 700; color: var(--text-2); }
+  .ml-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 4px; top: 50%;
+    transform: translateY(-50%);
+    width: 8px; height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+  }
+  .ml-item .ml-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+  .ml-item .ml-body { flex: 1; min-width: 0; }
+  .ml-item .ml-row1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .ml-item .ml-from {
+    font-size: 14px;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ml-item .ml-time {
+    font-size: 12px;
+    color: var(--text-3);
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  .ml-item .ml-subj {
+    font-size: 13px;
+    color: var(--text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ml-item .ml-preview {
+    font-size: 12px;
+    color: var(--text-4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+  .ml-item .star-btn {
+    position: absolute;
+    right: 12px; top: 12px;
+    font-size: 15px;
+    color: var(--text-4);
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 2px;
+    background: none;
+    border: none;
+    opacity: 0;
+  }
+  .ml-item:hover .star-btn,
+  .ml-item .star-btn.on { opacity: 1; }
+  .ml-item .star-btn.on { color: var(--star); }
+  .ml-item .star-btn:hover { transform: scale(1.2); }
+  .ml-item .ml-check {
+    accent-color: var(--primary);
+    margin-right: 10px;
+    flex-shrink: 0;
+    align-self: center;
+    width: 16px; height: 16px;
+    cursor: pointer;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-4);
+    text-align: center;
+  }
+  .empty-state .es-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+    opacity: .5;
+  }
+  .empty-state p { font-size: 14px; }
+
+  /* ============ 邮件详情 ============ */
+  .mail-detail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    min-width: 0;
+  }
+  .mail-detail .empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-4);
+  }
+  .mail-detail .empty .eicon {
+    font-size: 72px;
+    margin-bottom: 20px;
+    opacity: .4;
+  }
+  .mail-detail .empty p { font-size: 15px; }
+  .mail-detail .empty .hint {
+    font-size: 13px;
+    color: var(--text-4);
+    margin-top: 8px;
+  }
+
+  .md-header {
+    padding: 28px 36px 20px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .md-header h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+    color: var(--text-1);
+    line-height: 1.4;
+  }
+  .md-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .md-meta .md-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .md-meta .md-info { flex: 1; }
+  .md-meta .md-from {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+  .md-meta .md-to {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+  .md-meta .md-date {
+    font-size: 13px;
+    color: var(--text-3);
+    flex-shrink: 0;
+  }
+  .md-actions {
+    display: flex;
+    gap: 6px;
+    padding: 10px 36px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .md-actions button {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: var(--transition);
+    color: var(--text-2);
+  }
+  .md-actions button:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .md-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 36px;
+    line-height: 1.8;
+    font-size: 14px;
+    color: var(--text-2);
+  }
+  .md-body p { margin-bottom: 14px; }
+  .md-body ul, .md-body ol { margin-left: 20px; margin-bottom: 14px; }
+  .md-body li { margin-bottom: 4px; }
+  .md-body strong { color: var(--text-1); }
+  .md-body a { color: var(--primary); text-decoration: none; }
+  .md-body a:hover { text-decoration: underline; }
+  .md-body blockquote {
+    border-left: 3px solid var(--primary);
+    padding-left: 14px;
+    color: var(--text-3);
+    margin: 14px 0;
+    font-style: italic;
+  }
+  .md-attach {
+    padding: 16px 36px;
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .md-attach .att-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+  .md-attach .att-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-right: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-2);
+    background: var(--bg);
+  }
+  .md-attach .att-item:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .md-attach .att-item .att-size {
+    color: var(--text-4);
+    font-size: 12px;
+  }
+
+  /* ============ 写信弹窗 ============ */
+  .compose-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .compose-overlay.show { display: flex; }
+  .compose-box {
+    width: 680px;
+    max-width: 92vw;
+    max-height: 85vh;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    flex-direction: column;
+    animation: slideUp .35s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(60px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .compose-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--gradient);
+    color: #fff;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .compose-header span {
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compose-header .ch-btns { display: flex; gap: 4px; }
+  .compose-header .ch-btns button {
+    background: rgba(255,255,255,.15);
+    border: none;
+    color: #fff;
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 16px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .compose-header .ch-btns button:hover { background: rgba(255,255,255,.3); }
+  .compose-body { padding: 0; overflow-y: auto; }
+  .compose-body .row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .compose-body .row label {
+    width: 70px;
+    padding: 0 16px;
+    font-size: 13px;
+    color: var(--text-3);
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+  .compose-body .row input,
+  .compose-body .row textarea {
+    flex: 1;
+    border: none;
+    padding: 13px 16px;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    background: transparent;
+    color: var(--text-1);
+  }
+  .compose-body .row textarea {
+    min-height: 280px;
+    line-height: 1.7;
+  }
+  .compose-footer {
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .compose-footer .send-btn {
+    padding: 10px 32px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--gradient);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(99,102,241,.25);
+  }
+  .compose-footer .send-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99,102,241,.35);
+  }
+  .compose-footer .cf-btn {
+    background: none;
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-2);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .compose-footer .cf-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .compose-footer .spacer { flex: 1; }
+
+  /* ============ Toast ============ */
+  .toast-container {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--text-1);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    box-shadow: var(--shadow-lg);
+    animation: toastIn .3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+  .toast.warning { background: var(--warning); color: #fff; }
+  .toast.info { background: var(--primary); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(20px) scale(.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .toast.removing {
+    animation: toastOut .3s ease forwards;
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateY(-10px) scale(.95); }
+  }
+
+  /* ============ 右键菜单 ============ */
+  .context-menu {
+    display: none;
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 6px;
+    z-index: 300;
+    min-width: 180px;
+    animation: fadeIn .15s ease;
+  }
+  .context-menu.show { display: block; }
+  .context-menu .cm-item {
+    padding: 9px 14px;
+    font-size: 13px;
+    color: var(--text-2);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+  }
+  .context-menu .cm-item:hover {
+    background: var(--primary-bg);
+    color: var(--primary);
+  }
+  .context-menu .cm-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 4px 0;
+  }
+
+  /* ============ 设置面板 ============ */
+  .settings-panel {
+    padding: 36px 40px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .settings-panel h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--text-1);
+  }
+  .settings-panel .section-desc {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 28px;
+  }
+  .settings-group {
+    max-width: 480px;
+    margin-bottom: 28px;
+  }
+  .settings-group h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-2);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .settings-group .form-group {
+    margin-bottom: 18px;
+  }
+  .settings-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-bottom: 6px;
+  }
+  .settings-group input,
+  .settings-group select,
+  .settings-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    outline: none;
+    transition: var(--transition);
+    background: var(--bg-card);
+    color: var(--text-1);
+  }
+  .settings-group input:focus,
+  .settings-group select:focus,
+  .settings-group textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+  }
+  .settings-group textarea {
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .toggle-row .toggle-info { flex: 1; }
+  .toggle-row .toggle-info .toggle-label {
+    font-size: 14px;
+    color: var(--text-1);
+    font-weight: 500;
+  }
+  .toggle-row .toggle-info .toggle-desc {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: var(--primary); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: var(--transition);
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .toggle-switch.on::after { left: 23px; }
+  .save-btn {
+    padding: 11px 28px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--gradient);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(99,102,241,.25);
+  }
+  .save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99,102,241,.35);
+  }
+
+  /* ============ 联系我们面板 ============ */
+  .contact-panel {
+    padding: 36px 40px;
+    overflow-y: auto;
+    flex: 1;
+    max-width: 640px;
+  }
+  .contact-panel h3 { font-size: 20px; margin-bottom: 8px; }
+  .contact-panel .section-desc {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 28px;
+  }
+  .contact-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .contact-card {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-align: center;
+    transition: var(--transition);
+  }
+  .contact-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .contact-card .cc-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+  }
+  .contact-card .cc-label {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+  .contact-card .cc-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+
+  /* ============ 分页 ============ */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    gap: 8px;
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .pagination button {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-2);
+    transition: var(--transition);
+  }
+  .pagination button:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .pagination button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+  .pagination .page-info {
+    font-size: 13px;
+    color: var(--text-3);
+    margin: 0 8px;
+  }
+
+  /* ============ 进度条 ============ */
+  .loading-bar {
+    height: 3px;
+    background: var(--primary);
+    width: 0%;
+    transition: width .3s ease;
+    border-radius: 0 2px 2px 0;
+  }
+  .loading-bar.active {
+    animation: loadingAnim 1.5s ease infinite;
+  }
+  @keyframes loadingAnim {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 900px) {
+    .sidebar { width: 220px; }
+    .mail-list { width: 320px; }
+  }
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .mail-list { width: 100%; max-width: 100%; }
+    .mail-detail { display: none; }
+    .mail-detail.mobile-show { display: flex; }
+    .mail-list.mobile-hide { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== 登录页 ===================== -->
+<div class="login-wrap" id="loginPage">
+  <div class="login-box">
+    <div class="brand">
+      <div class="brand-icon">📧</div>
+      <h1>MailBox</h1>
+      <p class="sub">安全登录，畅享高效沟通</p>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <div class="input-group">
+      <label for="loginEmail">邮箱地址</label>
+      <div class="input-wrapper">
+        <span class="iw-icon">📨</span>
+        <input type="email" id="loginEmail" placeholder="请输入邮箱地址" autocomplete="email">
+      </div>
+    </div>
+    <div class="input-group">
+      <label for="loginPwd">密码</label>
+      <div class="input-wrapper">
+        <span class="iw-icon">🔒</span>
+        <input type="password" id="loginPwd" placeholder="请输入密码" autocomplete="current-password">
+        <button class="toggle-pwd" onclick="togglePwdVisibility()" title="显示/隐藏密码">👁️</button>
+      </div>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">登 录</button>
+    <p class="login-tip">温馨提示：请妥善保管密码</p>
+  </div>
+</div>
+
+<!-- ===================== 主界面 ===================== -->
+<div class="app" id="appPage">
+  <!-- 侧边栏 -->
+  <div class="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon">📮</div>
+      <div class="logo-text">MailBox</div>
+    </div>
+    <div class="user-card">
+      <div class="avatar-main" id="sideAvatar">D<span class="status-dot"></span></div>
+      <div class="info">
+        <div class="name" id="sideName">Demo User</div>
+        <div class="email" id="sideEmail">demo@mail.com</div>
+      </div>
+    </div>
+    <div class="nav" id="navContainer">
+      <div class="nav-section-title">邮件</div>
+      <div class="nav-item active" data-view="inbox" onclick="switchView('inbox',this)">
+        <span class="icon">📥</span> 收件箱
+        <span class="badge" id="unreadBadge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" data-view="starred" onclick="switchView('starred',this)">
+        <span class="icon">⭐</span> 星标邮件
+      </div>
+      <div class="nav-item" data-view="sent" onclick="switchView('sent',this)">
+        <span class="icon">📤</span> 已发送
+      </div>
+      <div class="nav-item" data-view="draft" onclick="switchView('draft',this)">
+        <span class="icon">📝</span> 草稿箱
+        <span class="count" id="draftCount">0</span>
+      </div>
+      <div class="nav-item" data-view="trash" onclick="switchView('trash',this)">
+        <span class="icon">🗑️</span> 垃圾箱
+      </div>
+      <div class="nav-section-title">其他</div>
+      <div class="nav-item" data-view="contacts" onclick="switchView('contacts',this)">
+        <span class="icon">👥</span> 联系我们
+      </div>
+      <div class="nav-item" data-view="settings" onclick="switchView('settings',this)">
+        <span class="icon">⚙️</span> 设置
+      </div>
+    </div>
+    <div class="footer">
+      <a onclick="doLogout()">退出登录</a>
+      <span>v2.0</span>
+    </div>
+  </div>
+
+  <!-- 右侧 -->
+  <div class="main">
+    <!-- 顶栏 -->
+    <div class="topbar">
+      <div class="search">
+        <span class="si">🔍</span>
+        <input type="text" id="searchInput" placeholder="搜索邮件（发件人、主题、内容）..." oninput="doSearch()" onkeydown="if(event.key==='Escape'){this.value='';doSearch();}">
+        <button class="clear-search" id="clearSearch" onclick="document.getElementById('searchInput').value='';doSearch();this.style.display='none';">✕</button>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" onclick="refreshMails()" title="刷新 (R)">🔄</button>
+        <button class="icon-btn" onclick="toggleTheme()" title="切换主题">🌙</button>
+        <button class="btn-primary" onclick="openCompose()">✏️ 写邮件</button>
+      </div>
+    </div>
+
+    <!-- 加载条 -->
+    <div class="loading-bar" id="loadingBar"></div>
+
+    <!-- 内容 -->
+    <div class="content" id="contentArea">
+      <!-- 邮件列表 -->
+      <div class="mail-list" id="mailListPanel">
+        <div class="toolbar">
+          <input type="checkbox" id="checkAll" onchange="toggleAll()" class="ml-check" style="margin:0 4px 0 6px;">
+          <button class="tbtn" title="删除" onclick="deleteSelected()" id="btnDelete">🗑️</button>
+          <button class="tbtn" title="标星" onclick="starSelected()" id="btnStar">⭐</button>
+          <button class="tbtn" title="标为已读" onclick="readSelected()" id="btnRead">✅</button>
+          <div class="spacer"></div>
+          <span style="font-size:12px;color:var(--text-3);" id="mailCount">0 封邮件</span>
+        </div>
+        <div class="ml-tabs">
+          <div class="ml-tab active" data-filter="all" onclick="setFilter('all',this)">全部</div>
+          <div class="ml-tab" data-filter="unread" onclick="setFilter('unread',this)">未读</div>
+          <div class="ml-tab" data-filter="read" onclick="setFilter('read',this)">已读</div>
+        </div>
+        <div class="ml-items" id="mailList"></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+      <!-- 邮件详情 -->
+      <div class="mail-detail" id="mailDetailPanel">
+        <div class="empty" id="detailEmpty">
+          <div class="eicon">📬</div>
+          <p>选择一封邮件查看详情</p>
+          <p class="hint">快捷键：N 写邮件 | R 刷新 | / 搜索 | Del 删除</p>
+        </div>
+        <div id="detailContent" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+          <div class="md-header">
+            <h2 id="mdSubject"></h2>
+            <div class="md-meta">
+              <div class="md-avatar" id="mdAvatar"></div>
+              <div class="md-info">
+                <div class="md-from" id="mdFrom"></div>
+                <div class="md-to" id="mdTo"></div>
+              </div>
+              <div class="md-date" id="mdDate"></div>
+            </div>
+          </div>
+          <div class="md-actions">
+            <button onclick="replyMail()">↩️ 回复</button>
+            <button onclick="forwardMail()">⏩ 转发</button>
+            <button onclick="toggleStarCurrent()" id="btnStarCurrent">⭐ 星标</button>
+            <button onclick="deleteCurrent()">🗑️ 删除</button>
+            <button onclick="printMail()">🖨️ 打印</button>
+          </div>
+          <div class="md-body" id="mdBody"></div>
+          <div class="md-attach" id="mdAttach" style="display:none;">
+            <div class="att-title">📎 附件</div>
+            <div id="attList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 写信弹窗 ===================== -->
+<div class="compose-overlay" id="composeOverlay">
+  <div class="compose-box">
+    <div class="compose-header">
+      <span id="composeTitle">✏️ 写新邮件</span>
+      <div class="ch-btns">
+        <button onclick="minimizeCompose()" title="最小化">—</button>
+        <button onclick="closeCompose()" title="关闭">✕</button>
+      </div>
+    </div>
+    <div class="compose-body">
+      <div class="row">
+        <label>收件人</label>
+        <input type="email" id="compTo" placeholder="recipient@example.com">
+      </div>
+      <div class="row">
+        <label>主题</label>
+        <input type="text" id="compSubject" placeholder="邮件主题">
+      </div>
+      <div class="row" style="align-items:flex-start;">
+        <label style="padding-top:13px;">正文</label>
+        <textarea id="compBody" placeholder="在此输入邮件内容..."></textarea>
+      </div>
+    </div>
+    <div class="compose-footer">
+      <button class="cf-btn" onclick="saveDraft()">💾 存草稿</button>
+      <button class="cf-btn" onclick="attachFile()">📎 附件</button>
+      <div class="spacer"></div>
+      <button class="send-btn" onclick="sendMail()">📤 发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- 右键菜单 -->
+<div class="context-menu" id="contextMenu">
+  <div class="cm-item" onclick="ctxAction('read')">✅ 标为已读</div>
+  <div class="cm-item" onclick="ctxAction('unread')">📩 标为未读</div>
+  <div class="cm-item" onclick="ctxAction('star')">⭐ 切换星标</div>
+  <div class="cm-divider"></div>
+  <div class="cm-item" onclick="ctxAction('reply')">↩️ 回复</div>
+  <div class="cm-item" onclick="ctxAction('forward')">⏩ 转发</div>
+  <div class="cm-divider"></div>
+  <div class="cm-item" onclick="ctxAction('delete')" style="color:var(--danger)">🗑️ 删除</div>
+</div>
+
+<!-- Toast 容器 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ===================== 数据持久化 =====================
+const STORAGE_KEY = 'mailbox_data_v2';
+const SETTINGS_KEY = 'mailbox_settings_v2';
+
+function loadFromStorage() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (data && data.mails) return data;
+  } catch(e) {}
+  return null;
+}
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    mails,
+    currentView,
+    currentMailId,
+    settings
+  }));
+}
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if (s) return { ...defaultSettings, ...s };
+  } catch(e) {}
+  return { ...defaultSettings };
+}
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// ===================== 默认设置 =====================
+const defaultSettings = {
+  displayName: 'Demo User',
+  language: 'zh-CN',
+  pageSize: 20,
+  signature: '—\n此邮件由 MailBox 系统发送',
+  theme: 'light',
+  autoSave: true,
+  notifications: true,
+  compactMode: false
+};
+let settings = loadSettings();
+
+// ===================== 工具函数 =====================
+const avatarColors = [
+  '#6366f1','#8b5cf6','#ec4899','#ef4444','#f59e0b',
+  '#10b981','#06b6d4','#3b82f6','#a855f7','#14b8a6'
+];
+function randColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return avatarColors[h % avatarColors.length];
+}
+function getInitial(name) {
+  return (name || '?').trim().charAt(0).toUpperCase();
+}
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+function generateId() {
+  return Date.now() + Math.floor(Math.random() * 1000);
+}
+function formatDateTime(d) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ===================== 初始邮件数据 =====================
+let mails = [
+  { id:1, from:'系统通知', fromEmail:'noreply@mailbox.com', to:'demo@mail.com', subject:'🎉 欢迎使用 MailBox 邮箱系统', body:'<p>尊敬的用户：</p><p>欢迎使用 <strong>MailBox</strong> 邮箱系统！本系统提供完整的邮件管理体验：</p><ul><li>📥 收发邮件 — 支持多文件夹管理</li><li>⭐ 星标收藏 — 重要邮件一键标记</li><li>🔍 智能搜索 — 快速定位任何邮件</li><li>🌙 暗色模式 — 夜间使用更舒适</li><li>💾 本地存储 — 数据持久化保存</li></ul><p>如有问题请联系管理员。</p><p style="color:var(--text-3);font-size:12px;margin-top:20px;">— 系统自动发送</p>', time:'2026-07-24 09:00', read:false, starred:true, folder:'inbox', attachments:[] },
+  { id:2, from:'张伟', fromEmail:'zhangwei@company.com', to:'demo@mail.com', subject:'项目周报 - 第30周', body:'<p>Hi，</p><p>附件是本周的项目周报，主要进展如下：</p><ul><li>前端框架升级完成，构建速度提升 40%</li><li>API 接口联调进度 80%，预计下周全部完成</li><li>数据库优化方案已评审通过，开始实施</li><li>单元测试覆盖率提升至 85%</li></ul><p>下周计划：</p><ol><li>完成剩余接口联调</li><li>启动压力测试</li><li>部署测试环境</li></ol><p>BR,<br>张伟</p>', time:'2026-07-23 17:30', read:false, starred:false, folder:'inbox', attachments:[{name:'周报_第30周.docx',size:'245 KB'}] },
+  { id:3, from:'李娜', fromEmail:'lina@team.org', to:'demo@mail.com', subject:'会议邀请：产品评审会', body:'<p>你好，</p><p>邀请你参加本周五下午 2:00 的产品评审会。</p><p><strong>地点：</strong>3楼会议室 A<br><strong>时长：</strong>约 90 分钟</p><p>议题：</p><ol><li>Q3 产品路线图回顾</li><li>新功能优先级讨论</li><li>资源分配方案</li><li>风险评估与应对</li></ol><p>请提前阅读附件中的材料，并在会前提交你的反馈意见。</p><p>谢谢！<br>李娜</p>', time:'2026-07-23 11:15', read:false, starred:true, folder:'inbox', attachments:[{name:'评审材料.pdf',size:'1.2 MB'},{name:'路线图_v2.pptx',size:'3.8 MB'}] },
+  { id:4, from:'GitHub', fromEmail:'noreply@github.com', to:'demo@mail.com', subject:'[GitHub] 安全提醒：新的登录活动', body:'<p>我们检测到你的账户有新的登录活动：</p><p><strong>时间：</strong>2026-07-22 22:14<br><strong>地点：</strong>四川成都, 中国<br><strong>设备：</strong>Chrome on Windows<br><strong>IP 地址：</strong>171.xxx.xxx.xxx</p><p>如果不是你本人的操作，请立即 <a href="#">修改密码</a> 并启用两步验证。</p><p style="color:var(--text-3);font-size:12px;">如果你认识此活动，可以安全地忽略此邮件。</p>', time:'2026-07-22 22:14', read:true, starred:false, folder:'inbox', attachments:[] },
+  { id:5, from:'王芳', fromEmail:'wangfang@design.net', to:'demo@mail.com', subject:'设计稿评审反馈', body:'<p>Hi，</p><p>设计稿已更新，主要修改点如下：</p><ul><li>首页 Banner 尺寸调整为 1920×600</li><li>颜色方案统一为品牌蓝 #6366f1</li><li>按钮圆角统一为 8px</li><li>新增暗色模式设计稿</li><li>移动端适配方案优化</li></ul><p>请在明天之前给到反馈，有问题随时沟通。</p><p>谢谢！<br>王芳</p>', time:'2026-07-22 15:40', read:true, starred:false, folder:'inbox', attachments:[{name:'设计稿_v3.fig',size:'8.5 MB'},{name:'切图资源.zip',size:'3.2 MB'},{name:'暗色模式预览.png',size:'1.8 MB'}] },
+  { id:6, from:'技术支持', fromEmail:'support@cloud.com', to:'demo@mail.com', subject:'【重要】服务器维护通知', body:'<p>尊敬的客户：</p><p>我们将于 <strong>2026年7月25日 02:00-04:00</strong> 进行服务器例行维护，届时服务可能会有短暂中断（预计不超过 10 分钟）。</p><p>维护内容：</p><ul><li>数据库版本升级</li><li>安全补丁更新</li><li>负载均衡器配置优化</li></ul><p>如有紧急问题请联系值班工程师。</p><p>— 技术支持团队</p>', time:'2026-07-21 10:00', read:true, starred:false, folder:'inbox', attachments:[] },
+  { id:7, from:'陈明', fromEmail:'chenming@startup.io', to:'demo@mail.com', subject:'合作提案 - 技术联合研发', body:'<p>Demo 你好，</p><p>希望就以下合作方向与您探讨：</p><ul><li>技术联合研发 — 共建开源项目</li><li>市场资源共享 — 互利共赢</li><li>人才交流计划 — 定期技术分享</li></ul><p>我们团队在 AI 和大数据领域有丰富经验，相信可以碰撞出很好的火花。</p><p>方便的话约个时间详细聊聊？下周我都在。</p><p>祝好<br>陈明</p>', time:'2026-07-20 09:25', read:true, starred:true, folder:'inbox', attachments:[{name:'合作提案.pdf',size:'568 KB'},{name:'公司介绍.pdf',size:'2.1 MB'}] },
+  { id:8, from:'我', fromEmail:'demo@mail.com', to:'hr@company.com', subject:'简历投递 - 高级前端工程师', body:'<p>HR 您好，</p><p>附件是我的简历，我对贵公司的高级前端工程师岗位非常感兴趣。</p><p>我拥有 5 年以上前端开发经验，精通 React/Vue/Angular 等主流框架，有丰富的项目架构和团队管理经验。</p><p>期待您的回复，祝工作顺利！</p><p>祝好<br>Demo</p>', time:'2026-07-19 14:00', read:true, starred:false, folder:'sent', attachments:[{name:'简历_Demo.pdf',size:'320 KB'}] },
+  { id:9, from:'我', fromEmail:'demo@mail.com', to:'team@office.com', subject:'周会纪要 - 7月第三周', body:'<p>各位，</p><p>本周会议纪要如下：</p><ol><li>确认了下季度 OKR，重点放在用户体验提升</li><li>分配了各人任务，详见附件</li><li>约定每周三 10:00 同步进度</li><li>新成员 onboarding 计划已确定</li></ol><p>请大家按时完成各自任务。</p><p>谢谢<br>Demo</p>', time:'2026-07-18 17:00', read:true, starred:false, folder:'sent', attachments:[] },
+  { id:10, from:'营销推广', fromEmail:'promo@shop.com', to:'demo@mail.com', subject:'🔥 夏季大促，全场5折起！', body:'<p>限时优惠！夏季大促火热进行中，全场商品低至 5 折！</p><p>热门品类：</p><ul><li>数码电子 — 最高省 ¥2000</li><li>时尚服饰 — 精选款 3 折起</li><li>家居好物 — 满 299 减 50</li></ul><p>优惠码：<strong>SUMMER50</strong></p><p>有效期至 2026-07-31</p>', time:'2026-07-17 08:00', read:true, starred:false, folder:'trash', attachments:[] },
+  { id:11, from:'我', fromEmail:'demo@mail.com', to:'', subject:'（未完成的草稿）', body:'<p>这是一封未完成的邮件...</p>', time:'2026-07-16 20:00', read:true, starred:false, folder:'draft', attachments:[] },
+  { id:12, from:'赵敏', fromEmail:'zhaomin@partner.com', to:'demo@mail.com', subject:'Re: 项目交付确认', body:'<p>Demo，</p><p>项目交付确认收到，整体质量很好！有几个小问题需要跟进：</p><ol><li>文档中第 3 章的流程图需要更新</li><li>API 文档缺少错误码说明</li><li>部署脚本需要适配新环境</li></ol><p>这些不急，下周内完成即可。</p><p>感谢团队的辛苦付出！<br>赵敏</p>', time:'2026-07-15 16:20', read:true, starred:false, folder:'inbox', attachments:[{name:'交付检查清单.xlsx',size:'45 KB'}] },
+  { id:13, from:'系统通知', fromEmail:'noreply@mailbox.com', to:'demo@mail.com', subject:'存储空间提醒', body:'<p>您的邮箱存储空间已使用 <strong>78%</strong>（7.8GB / 10GB）。</p><p>建议：</p><ul><li>清理垃圾箱中的旧邮件</li><li>删除不必要的附件</li><li>将重要邮件归档到本地</li></ul><p>如需扩容，请前往 <a href="#">账户设置</a> 升级套餐。</p>', time:'2026-07-14 09:00', read:true, starred:false, folder:'inbox', attachments:[] },
+];
+
+// ===================== 状态变量 =====================
+let currentView = 'inbox';
+let currentFilter = 'all';
+let currentSearch = '';
+let selectedMails = new Set();
+let currentMailId = null;
+let currentPage = 1;
+let contextMenuMailId = null;
+
+// 尝试从本地存储恢复
+const saved = loadFromStorage();
+if (saved) {
+  mails = saved.mails || mails;
+  currentView = saved.currentView || 'inbox';
+  currentMailId = saved.currentMailId || null;
+}
+
+// ===================== 登录 =====================
+function togglePwdVisibility() {
+  const pwd = document.getElementById('loginPwd');
+  pwd.type = pwd.type === 'password' ? 'text' : 'password';
+}
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd = document.getElementById('loginPwd').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  errEl.style.display = 'none';
+
+  if (!email) { showError('请输入邮箱地址'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('邮箱格式不正确'); return; }
+  if (!pwd) { showError('请输入密码'); return; }
+  if (pwd.length < 4) { showError('密码至少 4 位'); return; }
+
+  // 模拟登录加载
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  setTimeout(() => {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appPage').style.display = 'flex';
+    btn.classList.remove('loading');
+    btn.disabled = false;
+
+    const name = email.split('@')[0];
+    const displayName = settings.displayName !== 'Demo User' ? settings.displayName : name.charAt(0).toUpperCase() + name.slice(1);
+    document.getElementById('sideName').textContent = displayName;
+    document.getElementById('sideEmail').textContent = email;
+    document.getElementById('sideAvatar').textContent = getInitial(displayName);
+
+    // 恢复视图
+    const navItem = document.querySelector(`.nav-item[data-view="${currentView}"]`);
+    if (navItem) switchView(currentView, navItem);
+    else renderMailList();
+
+    updateAllBadges();
+    applyTheme(settings.theme);
+    showToast('登录成功，欢迎回来！', 'success');
+  }, 800);
+}
+
+function showError(msg) {
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  errEl.style.animation = 'fadeIn .3s ease';
+}
+
+function doLogout() {
+  if (!confirm('确定要退出登录吗？')) return;
+  saveToStorage();
+  document.getElementById('appPage').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  // 清空密码
+  document.getElementById('loginPwd').value = '';
+  showToast('已退出登录', 'info');
+}
+
+// Enter 键提交
+document.getElementById('loginPwd').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginEmail').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginPwd').focus();
+});
+
+// ===================== 主题切换 =====================
+function toggleTheme() {
+  settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(settings.theme);
+  saveSettings();
+  showToast(`已切换至${settings.theme === 'dark' ? '暗色' : '亮色'}模式`, 'info');
+}
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    document.body.setAttribute('data-theme', 'dark');
+    document.querySelector('.topbar .actions .icon-btn[onclick*="toggleTheme"]').textContent = '☀️';
+  } else {
+    document.body.removeAttribute('data-theme');
+    document.querySelector('.topbar .actions .icon-btn[onclick*="toggleTheme"]').textContent = '🌙';
+  }
+}
+
+// ===================== 视图切换 =====================
+function switchView(view, el) {
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  selectedMails.clear();
+  currentPage = 1;
+
+  const content = document.getElementById('contentArea');
+
+  if (view === 'settings') {
+    renderSettings(content);
+    return;
+  }
+  if (view === 'contacts') {
+    content.innerHTML = `
+      <div class="contact-panel">
+        <h3>👥 联系我们</h3>
+        <p class="section-desc">如有任何问题或建议，请通过以下方式联系我们</p>
+        <div class="contact-cards">
+          <div class="contact-card">
+            <div class="cc-icon">📧</div>
+            <div class="cc-label">邮箱</div>
+            <div class="cc-value">support@mailbox.com</div>
+          </div>
+          <div class="contact-card">
+            <div class="cc-icon">📞</div>
+            <div class="cc-label">电话</div>
+            <div class="cc-value">400-888-6666</div>
+          </div>
+          <div class="contact-card">
+            <div class="cc-icon">💬</div>
+            <div class="cc-label">在线客服</div>
+            <div class="cc-value">工作日 9:00-18:00</div>
+          </div>
+          <div class="contact-card">
+            <div class="cc-icon">📍</div>
+            <div class="cc-label">地址</div>
+            <div class="cc-value">成都市高新区</div>
+          </div>
+        </div>
+        <div style="background:var(--gradient-soft);padding:24px;border-radius:var(--radius-md);border:1px solid var(--border-light);">
+          <h4 style="margin-bottom:10px;font-size:15px;">💡 常见问题</h4>
+          <p style="color:var(--text-3);font-size:13px;line-height:1.8;">
+            <strong>Q: 如何找回密码？</strong><br>
+            A: 请联系管理员重置密码。<br><br>
+            <strong>Q: 邮件发送失败怎么办？</strong><br>
+            A: 请检查收件人地址是否正确，附件大小是否超限。<br><br>
+            <strong>Q: 如何启用暗色模式？</strong><br>
+            A: 点击顶栏的月亮图标即可切换。
+          </p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // 恢复邮件列表视图
+  content.innerHTML = `
+    <div class="mail-list" id="mailListPanel">
+      <div class="toolbar">
+        <input type="checkbox" id="checkAll" onchange="toggleAll()" class="ml-check" style="margin:0 4px 0 6px;">
+        <button class="tbtn" title="删除" onclick="deleteSelected()" id="btnDelete">🗑️</button>
+        <button class="tbtn" title="标星" onclick="starSelected()" id="btnStar">⭐</button>
+        <button class="tbtn" title="标为已读" onclick="readSelected()" id="btnRead">✅</button>
+        <div class="spacer"></div>
+        <span style="font-size:12px;color:var(--text-3);" id="mailCount">0 封邮件</span>
+      </div>
+      <div class="ml-tabs">
+        <div class="ml-tab active" data-filter="all" onclick="setFilter('all',this)">全部</div>
+        <div class="ml-tab" data-filter="unread" onclick="setFilter('unread',this)">未读</div>
+        <div class="ml-tab" data-filter="read" onclick="setFilter('read',this)">已读</div>
+      </div>
+      <div class="ml-items" id="mailList"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+    <div class="mail-detail" id="mailDetailPanel">
+      <div class="empty" id="detailEmpty">
+        <div class="eicon">📬</div>
+        <p>选择一封邮件查看详情</p>
+        <p class="hint">快捷键：N 写邮件 | R 刷新 | / 搜索 | Del 删除</p>
+      </div>
+      <div id="detailContent" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+        <div class="md-header">
+          <h2 id="mdSubject"></h2>
+          <div class="md-meta">
+            <div class="md-avatar" id="mdAvatar"></div>
+            <div class="md-info">
+              <div class="md-from" id="mdFrom"></div>
+              <div class="md-to" id="mdTo"></div>
+            </div>
+            <div class="md-date" id="mdDate"></div>
+          </div>
+        </div>
+        <div class="md-actions">
+          <button onclick="replyMail()">↩️ 回复</button>
+          <button onclick="forwardMail()">⏩ 转发</button>
+          <button onclick="toggleStarCurrent()" id="btnStarCurrent">⭐ 星标</button>
+          <button onclick="deleteCurrent()">🗑️ 删除</button>
+          <button onclick="printMail()">🖨️ 打印</button>
+        </div>
+        <div class="md-body" id="mdBody"></div>
+        <div class="md-attach" id="mdAttach" style="display:none;">
+          <div class="att-title">📎 附件</div>
+          <div id="attList"></div>
+        </div>
+      </div>
+    </div>`;
+
+  renderMailList();
+  updateAllBadges();
+}
+
+// ===================== 设置面板 =====================
+function renderSettings(container) {
+  container.innerHTML = `
+    <div class="settings-panel">
+      <h3>⚙️ 账户设置</h3>
+      <p class="section-desc">管理您的账户偏好和个性化选项</p>
+
+      <div class="settings-group">
+        <h4>个人信息</h4>
+        <div class="form-group">
+          <label>显示名称</label>
+          <input type="text" id="setName" value="${escapeHtml(settings.displayName)}">
+        </div>
+        <div class="form-group">
+          <label>邮箱地址</label>
+          <input type="email" value="demo@mail.com" disabled style="opacity:.6;">
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>偏好设置</h4>
+        <div class="form-group">
+          <label>语言</label>
+          <select id="setLang">
+            <option value="zh-CN" ${settings.language==='zh-CN'?'selected':''}>简体中文</option>
+            <option value="en-US" ${settings.language==='en-US'?'selected':''}>English</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>每页显示邮件数</label>
+          <select id="setPageSize">
+            <option value="10" ${settings.pageSize==10?'selected':''}>10</option>
+            <option value="20" ${settings.pageSize==20?'selected':''}>20</option>
+            <option value="50" ${settings.pageSize==50?'selected':''}>50</option>
+            <option value="100" ${settings.pageSize==100?'selected':''}>100</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>功能开关</h4>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">自动保存草稿</div>
+            <div class="toggle-desc">写信时每 30 秒自动保存</div>
+          </div>
+          <div class="toggle-switch ${settings.autoSave?'on':''}" onclick="toggleSetting(this,'autoSave')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">桌面通知</div>
+            <div class="toggle-desc">收到新邮件时弹出通知</div>
+          </div>
+          <div class="toggle-switch ${settings.notifications?'on':''}" onclick="toggleSetting(this,'notifications')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">紧凑模式</div>
+            <div class="toggle-desc">减小邮件列表行高，显示更多内容</div>
+          </div>
+          <div class="toggle-switch ${settings.compactMode?'on':''}" onclick="toggleSetting(this,'compactMode')"></div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>邮件签名</h4>
+        <div class="form-group">
+          <label>默认签名</label>
+          <textarea id="setSig">${escapeHtml(settings.signature)}</textarea>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveSettingsForm()">💾 保存设置</button>
+    </div>`;
+
+  // 紧凑模式样式
+  if (settings.compactMode) {
+    document.documentElement.style.setProperty('--row-padding', '8px 16px');
+  }
+}
+
+function toggleSetting(el, key) {
+  el.classList.toggle('on');
+  settings[key] = el.classList.contains('on');
+  saveSettings();
+}
+
+function saveSettingsForm() {
+  settings.displayName = document.getElementById('setName').value.trim() || 'Demo User';
+  settings.language = document.getElementById('setLang').value;
+  settings.pageSize = parseInt(document.getElementById('setPageSize').value);
+  settings.signature = document.getElementById('setSig').value;
+  saveSettings();
+
+  // 更新侧边栏
+  document.getElementById('sideName').textContent = settings.displayName;
+  document.getElementById('sideAvatar').textContent = getInitial(settings.displayName);
+
+  showToast('设置已保存', 'success');
+}
+
+// ===================== 邮件列表 =====================
+function getFilteredMails() {
+  let list = mails.filter(m => {
+    if (currentView === 'inbox') return m.folder === 'inbox';
+    if (currentView === 'sent') return m.folder === 'sent';
+    if (currentView === 'draft') return m.folder === 'draft';
+    if (currentView === 'trash') return m.folder === 'trash';
+    if (currentView === 'starred') return m.starred && m.folder !== 'trash';
+    return true;
+  });
+
+  if (currentFilter === 'unread') list = list.filter(m => !m.read);
+  if (currentFilter === 'read') list = list.filter(m => m.read);
+
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    list = list.filter(m =>
+      m.from.toLowerCase().includes(q) ||
+      m.subject.toLowerCase().includes(q) ||
+      m.body.toLowerCase().includes(q) ||
+      m.fromEmail.toLowerCase().includes(q)
+    );
+  }
+
+  return list.sort((a, b) => b.time.localeCompare(a.time));
+}
+
+function renderMailList() {
+  const container = document.getElementById('mailList');
+  if (!container) return;
+
+  const all = getFilteredMails();
+  const pageSize = settings.pageSize;
+  const totalPages = Math.max(1, Math.ceil(all.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * pageSize;
+  const list = all.slice(start, start + pageSize);
+
+  document.getElementById('mailCount').textContent =
+    all.length === 0 ? '无邮件' : `${all.length} 封（第 ${currentPage}/${totalPages} 页）`;
+
+  // 分页
+  renderPagination(totalPages);
+
+  if (all.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="es-icon">📭</div>
+        <p>${currentSearch ? '没有找到匹配的邮件' : '这里空空如也'}</p>
+      </div>`;
+    return;
+  }
+
+  const compact = settings.compactMode ? 'compact' : '';
+  container.innerHTML = list.map(m => {
+    const color = randColor(m.from);
+    const init = getInitial(m.from);
+    const preview = m.body.replace(/<[^>]+>/g, '').substring(0, 60);
+    const isActive = currentMailId === m.id ? 'active' : '';
+    const isUnread = !m.read ? 'unread' : '';
+    const starOn = m.starred ? 'on' : '';
+    const checked = selectedMails.has(m.id) ? 'checked' : '';
+    return `
+    <div class="ml-item ${isUnread} ${isActive} ${compact}" data-id="${m.id}"
+         onclick="openMail(${m.id})"
+         oncontextmenu="showContextMenu(event,${m.id})">
+      <input type="checkbox" ${checked} onclick="event.stopPropagation();toggleSelect(${m.id})" class="ml-check">
+      <div class="ml-avatar" style="background:${color}">${init}</div>
+      <div class="ml-body">
+        <div class="ml-row1">
+          <span class="ml-from">${escapeHtml(m.from)}</span>
+          <span class="ml-time">${formatTime(m.time)}</span>
+        </div>
+        <div class="ml-subj">${escapeHtml(m.subject)}</div>
+        <div class="ml-preview">${escapeHtml(preview)}</div>
+      </div>
+      <button class="star-btn ${starOn}" onclick="event.stopPropagation();toggleStar(${m.id})" title="星标">
+        ${m.starred ? '★' : '☆'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function renderPagination(totalPages) {
+  const pg = document.getElementById('pagination');
+  if (!pg) return;
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  pg.innerHTML = `
+    <button onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← 上一页</button>
+    <span class="page-info">${currentPage} / ${totalPages}</span>
+    <button onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>下一页 →</button>
+  `;
+}
+function goPage(p) {
+  currentPage = p;
+  renderMailList();
+  // 滚动到顶部
+  const ml = document.getElementById('mailList');
+  if (ml) ml.scrollTop = 0;
+}
+
+// ===================== 时间格式化 =====================
+function formatTime(t) {
+  const d = new Date(t.replace(/-/g, '/'));
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+  if (diff < 172800) return '昨天';
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  return t.substring(0, 10);
+}
+
+// ===================== 筛选 & 搜索 =====================
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.ml-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  currentPage = 1;
+  renderMailList();
+}
+
+function doSearch() {
+  currentSearch = document.getElementById('searchInput').value.trim();
+  const clearBtn = document.getElementById('clearSearch');
+  if (clearBtn) clearBtn.style.display = currentSearch ? 'block' : 'none';
+  currentPage = 1;
+  renderMailList();
+}
+
+// ===================== 打开邮件 =====================
+function openMail(id) {
+  const m = mails.find(x => x.id === id);
+  if (!m) return;
+  currentMailId = id;
+  if (!m.read) { m.read = true; updateAllBadges(); saveToStorage(); }
+
+  selectedMails.clear();
+  selectedMails.add(id);
+
+  document.getElementById('detailEmpty').style.display = 'none';
+  document.getElementById('detailContent').style.display = 'flex';
+
+  document.getElementById('mdSubject').textContent = m.subject;
+  const color = randColor(m.from);
+  const av = document.getElementById('mdAvatar');
+  av.style.background = color;
+  av.textContent = getInitial(m.from);
+  document.getElementById('mdFrom').textContent = `${m.from} <${m.fromEmail}>`;
+  document.getElementById('mdTo').textContent = `收件人：${m.to || '—'}`;
+  document.getElementById('mdDate').textContent = m.time;
+  document.getElementById('mdBody').innerHTML = m.body;
+
+  // 更新星标按钮
+  document.getElementById('btnStarCurrent').textContent = m.starred ? '★ 取消星标' : '☆ 星标';
+
+  const att = document.getElementById('mdAttach');
+  if (m.attachments && m.attachments.length) {
+    att.style.display = 'block';
+    document.getElementById('attList').innerHTML = m.attachments.map(a =>
+      `<span class="att-item">📎 ${escapeHtml(a.name)} <span class="att-size">(${a.size})</span></span>`
+    ).join('');
+  } else {
+    att.style.display = 'none';
+  }
+
+  renderMailList();
+  saveToStorage();
+}
+
+// ===================== 选择操作 =====================
+function toggleSelect(id) {
+  if (selectedMails.has(id)) selectedMails.delete(id);
+  else selectedMails.add(id);
+  updateToolbarState();
+}
+
+function toggleAll() {
+  const all = document.getElementById('checkAll').checked;
+  const list = getFilteredMails().slice((currentPage-1)*settings.pageSize, currentPage*settings.pageSize);
+  if (all) list.forEach(m => selectedMails.add(m.id));
+  else selectedMails.clear();
+  renderMailList();
+  updateToolbarState();
+}
+
+function updateToolbarState() {
+  const hasSel = selectedMails.size > 0;
+  const btns = ['btnDelete','btnStar','btnRead'];
+  btns.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !hasSel;
+  });
+}
+
+function deleteSelected() {
+  if (!selectedMails.size) { showToast('请先选择邮件', 'warning'); return; }
+  if (!confirm(`确定删除选中的 ${selectedMails.size} 封邮件？`)) return;
+  mails.forEach(m => { if (selectedMails.has(m.id)) m.folder = 'trash'; });
+  selectedMails.clear();
+  currentMailId = null;
+  renderMailList();
+  updateAllBadges();
+  saveToStorage();
+  document.getElementById('detailEmpty').style.display = 'flex';
+  document.getElementById('detailContent').style.display = 'none';
+  showToast('邮件已移至垃圾箱', 'success');
+}
+
+function starSelected() {
+  if (!selectedMails.size) { showToast('请先选择邮件', 'warning'); return; }
+  let allStarred = true;
+  selectedMails.forEach(id => {
+    const m = mails.find(x => x.id === id);
+    if (m && !m.starred) allStarred = false;
+  });
+  mails.forEach(m => { if (selectedMails.has(m.id)) m.starred = !allStarred; });
+  renderMailList();
+  saveToStorage();
+  showToast(allStarred ? '已取消星标' : '已添加星标', 'info');
+}
+
+function readSelected() {
+  if (!selectedMails.size) { showToast('请先选择邮件', 'warning'); return; }
+  mails.forEach(m => { if (selectedMails.has(m.id)) m.read = true; });
+  renderMailList();
+  updateAllBadges();
+  saveToStorage();
+  showToast('已标为已读', 'success');
+}
+
+// ===================== 单封操作 =====================
+function toggleStar(id) {
+  const m = mails.find(x => x.id === id);
+  if (m) {
+    m.starred = !m.starred;
+    renderMailList();
+    saveToStorage();
+  }
+}
+
+function toggleStarCurrent() {
+  if (currentMailId == null) return;
+  toggleStar(currentMailId);
+  const m = mails.find(x => x.id === currentMailId);
+  document.getElementById('btnStarCurrent').textContent = m.starred ? '★ 取消星标' : '☆ 星标';
+  showToast(m.starred ? '已添加星标' : '已取消星标', 'info');
+}
+
+function deleteCurrent() {
+  if (currentMailId == null) return;
+  const m = mails.find(x => x.id === currentMailId);
+  if (m) {
+    m.folder = 'trash';
+    currentMailId = null;
+    renderMailList();
+    updateAllBadges();
+    saveToStorage();
+    showToast('邮件已删除', 'success');
+    document.getElementById('detailEmpty').style.display = 'flex';
+    document.getElementById('detailContent').style.display = 'none';
+  }
+}
+
+function printMail() {
+  if (currentMailId == null) return;
+  const m = mails.find(x => x.id === currentMailId);
+  if (!m) return;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html><html><head><meta charset="UTF-8"><title>${m.subject}</title>
+    <style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 20px;line-height:1.8;color:#333;}
+    h1{font-size:22px;margin-bottom:16px;} .meta{color:#888;font-size:13px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #eee;}
+    a{color:#6366f1;}</style></head><body>
+    <h1>${m.subject}</h1><div class="meta">发件人: ${m.from} &lt;${m.fromEmail}&gt;<br>时间: ${m.time}</div>
+    ${m.body}</body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ===================== 回复 / 转发 =====================
+function replyMail() {
+  if (currentMailId == null) return;
+  const m = mails.find(x => x.id === currentMailId);
+  openCompose();
+  document.getElementById('compTo').value = m.fromEmail;
+  document.getElementById('compSubject').value = 'Re: ' + m.subject;
+  document.getElementById('compBody').value = `\n\n--- 原文 ---\n${m.body.replace(/<[^>]+>/g, '')}`;
+}
+
+function forwardMail() {
+  if (currentMailId == null) return;
+  const m = mails.find(x => x.id === currentMailId);
+  openCompose();
+  document.getElementById('compSubject').value = 'Fwd: ' + m.subject;
+  document.getElementById('compBody').value = `\n\n--- 转发 ---\n发件人: ${m.from}\n时间: ${m.time}\n\n${m.body.replace(/<[^>]+>/g, '')}`;
+}
+
+// ===================== 写信 =====================
+function openCompose() {
+  document.getElementById('composeOverlay').classList.add('show');
+  document.getElementById('composeTitle').textContent = '✏️ 写新邮件';
+  document.getElementById('compTo').value = '';
+  document.getElementById('compSubject').value = '';
+  document.getElementById('compBody').value = '';
+  setTimeout(() => document.getElementById('compTo').focus(), 100);
+}
+
+function closeCompose() {
+  document.getElementById('composeOverlay').classList.remove('show');
+}
+
+function minimizeCompose() {
+  closeCompose();
+  showToast('写信窗口已关闭', 'info');
+}
+
+function sendMail() {
+  const to = document.getElementById('compTo').value.trim();
+  const subj = document.getElementById('compSubject').value.trim();
+  const body = document.getElementById('compBody').value.trim();
+
+  if (!to) { showToast('请输入收件人', 'error'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { showToast('收件人邮箱格式不正确', 'error'); return; }
+  if (!subj) { showToast('请输入主题', 'error'); return; }
+  if (!body) { showToast('请输入邮件内容', 'error'); return; }
+
+  const newMail = {
+    id: generateId(),
+    from: settings.displayName,
+    fromEmail: 'demo@mail.com',
+    to: to,
+    subject: subj,
+    body: '<p>' + body.replace(/\n/g, '</p><p>') + '</p>',
+    time: formatDateTime(new Date()),
+    read: true,
+    starred: false,
+    folder: 'sent',
+    attachments: []
+  };
+  mails.unshift(newMail);
+  closeCompose();
+  saveToStorage();
+  showToast('✅ 邮件发送成功！', 'success');
+
+  if (currentView !== 'sent') {
+    const navItem = document.querySelector('.nav-item[data-view="sent"]');
+    switchView('sent', navItem);
+  } else {
+    renderMailList();
+  }
+}
+
+function saveDraft() {
+  const to = document.getElementById('compTo').value.trim();
+  const subj = document.getElementById('compSubject').value.trim() || '（未完成的草稿）';
+  const body = document.getElementById('compBody').value.trim();
+
+  const draft = {
+    id: generateId(),
+    from: settings.displayName,
+    fromEmail: 'demo@mail.com',
+    to: to,
+    subject: subj,
+    body: body ? '<p>' + body.replace(/\n/g, '</p><p>') + '</p>' : '<p></p>',
+    time: formatDateTime(new Date()),
+    read: true, starred: false, folder: 'draft', attachments: []
+  };
+  mails.unshift(draft);
+  closeCompose();
+  saveToStorage();
+  updateAllBadges();
+  showToast('💾 草稿已保存', 'success');
+
+  if (currentView === 'draft') renderMailList();
+}
+
+function attachFile() {
+  showToast('📎 附件功能演示（暂不支持实际上传）', 'info');
+}
+
+// ===================== 右键菜单 =====================
+function showContextMenu(e, id) {
+  e.preventDefault();
+  contextMenuMailId = id;
+  const menu = document.getElementById('contextMenu');
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.classList.add('show');
+
+  // 确保菜单不超出视口
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) menu.style.left = (e.clientX - rect.width) + 'px';
+  if (rect.bottom > window.innerHeight) menu.style.top = (e.clientY - rect.height) + 'px';
+}
+document.addEventListener('click', () => {
+  document.getElementById('contextMenu').classList.remove('show');
+});
+function ctxAction(action) {
+  document.getElementById('contextMenu').classList.remove('show');
+  if (contextMenuMailId == null) return;
+  const m = mails.find(x => x.id === contextMenuMailId);
+  if (!m) return;
+
+  switch (action) {
+    case 'read': m.read = true; showToast('已标为已读', 'success'); break;
+    case 'unread': m.read = false; showToast('已标为未读', 'info'); break;
+    case 'star': m.starred = !m.starred; showToast(m.starred ? '已星标' : '已取消星标', 'info'); break;
+    case 'reply': openMail(m.id); replyMail(); return;
+    case 'forward': openMail(m.id); forwardMail(); return;
+    case 'delete': m.folder = 'trash'; showToast('邮件已删除', 'success');
+      if (currentMailId === m.id) {
+        currentMailId = null;
+        document.getElementById('detailEmpty').style.display = 'flex';
+        document.getElementById('detailContent').style.display = 'none';
+      }
+      break;
+  }
+  renderMailList();
+  updateAllBadges();
+  saveToStorage();
+}
+
+// ===================== 刷新 =====================
+function refreshMails() {
+  const bar = document.getElementById('loadingBar');
+  bar.classList.add('active');
+  bar.style.width = '30%';
+  setTimeout(() => { bar.style.width = '70%'; }, 300);
+  setTimeout(() => {
+    bar.style.width = '100%';
+    setTimeout(() => {
+      bar.classList.remove('active');
+      bar.style.width = '0%';
+    }, 200);
+    renderMailList();
+    updateAllBadges();
+    showToast('🔄 已检查新邮件', 'info');
+  }, 800);
+}
+
+// ===================== 角标更新 =====================
+function updateAllBadges() {
+  updateUnreadBadge();
+  // 草稿数
+  const draftCount = mails.filter(m => m.folder === 'draft').length;
+  const dc = document.getElementById('draftCount');
+  if (dc) dc.textContent = draftCount > 0 ? draftCount : '';
+}
+
+function updateUnreadBadge() {
+  const unread = mails.filter(m => !m.read && m.folder === 'inbox').length;
+  const badge = document.getElementById('unreadBadge');
+  if (badge) {
+    badge.textContent = unread;
+    badge.style.display = unread > 0 ? 'inline' : 'none';
+  }
+}
+
+// ===================== Toast =====================
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  toast.innerHTML = `${icons[type] || ''} <span>${msg}</span>`;
+  container.appendChild(toast);
+
+  // 自动移除
+  const duration = type === 'error' ? 3500 : 2500;
+  setTimeout(() => {
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// ===================== 键盘快捷键 =====================
+document.addEventListener('keydown', e => {
+  // 忽略输入框内的快捷键（除指定键外）
+  const tag = e.target.tagName;
+  const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+  // Esc 关闭弹窗和菜单
+  if (e.key === 'Escape') {
+    closeCompose();
+    document.getElementById('contextMenu').classList.remove('show');
+    return;
+  }
+
+  if (isInput) return;
+
+  switch (e.key.toLowerCase()) {
+    case 'n': e.preventDefault(); openCompose(); break;
+    case 'r': e.preventDefault(); refreshMails(); break;
+    case 'delete':
+    case 'backspace':
+      e.preventDefault();
+      if (selectedMails.size) deleteSelected();
+      else if (currentMailId != null) deleteCurrent();
+      break;
+    case '/':
+      e.preventDefault();
+      document.getElementById('searchInput').focus();
+      break;
+    case 's':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (document.getElementById('composeOverlay').classList.contains('show')) saveDraft();
+      }
+      break;
+  }
+});
+
+// Ctrl+Enter 发送
+document.getElementById('compBody').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    sendMail();
+  }
+});
+
+// ===================== 自动保存草稿 =====================
+let autoSaveTimer = null;
+function setupAutoSave() {
+  const fields = ['compTo', 'compSubject', 'compBody'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (!settings.autoSave) return;
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        const to = document.getElementById('compTo').value.trim();
+        const subj = document.getElementById('compSubject').value.trim();
+        const body = document.getElementById('compBody').value.trim();
+        if (!to && !subj && !body) return;
+        // 不真正保存，只在控制台提示
+        console.log('[AutoSave] Draft auto-saved at', new Date().toLocaleTimeString());
+      }, 30000);
+    });
+  });
+}
+
+// ===================== 初始化 =====================
+function init() {
+  applyTheme(settings.theme);
+  updateAllBadges();
+  setupAutoSave();
+
+  // 初始渲染
+  if (currentView && currentView !== 'inbox') {
+    const navItem = document.querySelector(`.nav-item[data-view="${currentView}"]`);
+    if (navItem) switchView(currentView, navItem);
+  } else {
+    renderMailList();
+  }
+
+  // 如果之前有打开的邮件，尝试恢复
+  if (currentMailId) {
+    const m = mails.find(x => x.id === currentMailId);
+    if (m && m.folder !== 'trash') openMail(currentMailId);
+  }
+}
+
+// 延迟初始化确保 DOM 就绪
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>

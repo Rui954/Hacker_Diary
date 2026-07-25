@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HACKEROS // Elite Hacker Simulator</title>
+<style>
+:root{
+  --g:#00ff41;--r:#ff003c;--b:#0088ff;--y:#ffdd00;
+  --bg:#050505;--panel:rgba(8,12,8,.92);--border:rgba(0,255,65,.3);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);color:#0f0;font-family:'Courier New',monospace;
+  overflow:hidden;height:100vh;user-select:none;
+}
+
+/* ===== DESKTOP ===== */
+#desktop{position:fixed;inset:0;overflow:hidden;z-index:0}
+
+/* Matrix bg */
+#matrix{position:fixed;top:0;left:0;z-index:-1;opacity:.12}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:36px;z-index:9999;
+  background:linear-gradient(180deg,#111,#0a0a0a);
+  border-bottom:1px solid #222;display:flex;align-items:center;
+  padding:0 16px;gap:20px;font-size:12px;color:#888;
+}
+.topbar .logo{color:var(--g);font-weight:900;letter-spacing:2px;font-size:14px}
+.topbar .time{margin-left:auto}
+.topbar .sys-status{color:var(--g)}
+
+/* ===== DOCK (RIGHT SIDEBAR) ===== */
+.dock{
+  position:fixed;right:0;top:36px;bottom:0;width:64px;z-index:9998;
+  background:rgba(10,10,10,.85);border-left:1px solid #222;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:12px 0;overflow-y:auto;
+}
+.dock-btn{
+  width:44px;height:44px;border-radius:8px;
+  background:rgba(0,255,65,.08);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;cursor:pointer;transition:all .2s;
+  position:relative;
+}
+.dock-btn:hover{
+  background:rgba(0,255,65,.2);transform:scale(1.1);
+  box-shadow:0 0 15px rgba(0,255,65,.3);
+}
+.dock-btn .tip{
+  position:absolute;right:52px;top:50%;transform:translateY(-50%);
+  background:#000;border:1px solid var(--g);padding:4px 10px;
+  font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;
+  transition:opacity .2s;color:var(--g);
+}
+.dock-btn:hover .tip{opacity:1}
+
+/* ===== WINDOW ===== */
+.win{
+  position:absolute;min-width:320px;min-height:200px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:4px;box-shadow:0 0 30px rgba(0,0,0,.8),0 0 10px rgba(0,255,65,.1);
+  display:flex;flex-direction:column;z-index:10;
+  backdrop-filter:blur(4px);
+}
+.win.maximized{top:36px!important;left:0!important;width:calc(100vw - 64px)!important;height:calc(100vh - 36px)!important}
+.win .titlebar{
+  height:28px;background:linear-gradient(180deg,#1a1a1a,#0d0d0d);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding:0 8px;cursor:move;font-size:12px;color:#aaa;gap:8px;
+  flex-shrink:0;
+}
+.win .titlebar .dots{display:flex;gap:5px}
+.win .titlebar .dot{width:10px;height:10px;border-radius:50%;cursor:pointer}
+.win .titlebar .dot.r{background:#ff5f56}.win .titlebar .dot.y{background:#ffbd2e}.win .titlebar .dot.g{background:#27c93f}
+.win .titlebar .ttl{flex:1;text-align:center;letter-spacing:1px}
+.win .body{flex:1;overflow:auto;padding:10px;font-size:12px;line-height:1.5}
+
+/* ===== CODE RAIN (fast) ===== */
+.code-rain{font-size:11px;line-height:1.3;color:#0f0;white-space:pre-wrap;word-break:break-all}
+.code-rain .kw{color:#0ff}.code-rain .str{color:#ff0}.code-rain .com{color:#444}.code-rain .err{color:#f00}
+
+/* ===== PROGRESS ===== */
+.hack-progress{margin:10px 0}
+.hack-progress .lbl{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px}
+.hack-progress .bar{height:16px;background:#001100;border:1px solid var(--g);position:relative}
+.hack-progress .fill{height:100%;background:linear-gradient(90deg,#003300,#00ff41);transition:width .3s;width:0%}
+.hack-progress .fill::after{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,.3) 3px,rgba(0,0,0,.3) 6px);
+}
+
+/* ===== TYPING ===== */
+.typing::after{content:'█';animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ===== ALERT ===== */
+.alert-overlay{
+  position:fixed;inset:0;z-index:99999;display:none;
+  align-items:center;justify-content:center;background:rgba(255,0,0,.15);
+}
+.alert-box{
+  background:#000;border:3px solid var(--r);padding:40px 60px;
+  text-align:center;animation:shake .3s infinite;
+  box-shadow:0 0 60px rgba(255,0,60,.5);
+}
+.alert-box h1{color:var(--r);font-size:32px;margin-bottom:10px;letter-spacing:4px}
+.alert-box p{color:#f88;font-size:14px}
+@keyframes shake{0%,100%{transform:translate(0)}25%{transform:translate(-3px,2px)}50%{transform:translate(2px,-2px)}75%{transform:translate(-2px,-1px)}}
+
+/* ===== SATELLITE MAP ===== */
+.sat-map{position:relative;width:100%;height:100%;background:#000;overflow:hidden}
+.sat-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,65,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.08) 1px,transparent 1px);background-size:30px 30px}
+.sat-target{
+  position:absolute;width:20px;height:20px;border:2px solid var(--r);
+  border-radius:50%;transform:translate(-50%,-50%);
+}
+.sat-target::before{
+  content:'';position:absolute;inset:-8px;border:1px solid rgba(255,0,60,.4);border-radius:50%;
+  animation:ping 2s ease-out infinite;
+}
+@keyframes ping{0%{transform:scale(.5);opacity:1}100%{transform:scale(2);opacity:0}}
+.sat-crosshair{position:absolute;inset:0;pointer-events:none}
+.sat-crosshair::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,255,65,.3)}
+.sat-crosshair::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(0,255,65,.3)}
+.sat-coord{position:absolute;bottom:10px;left:10px;font-size:11px;color:var(--g)}
+.sat-scan{
+  position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(180deg,transparent,rgba(0,255,65,.6),transparent);
+  animation:scan 3s linear infinite;
+}
+@keyframes scan{0%{top:0}100%{top:100%}}
+
+/* ===== NEURAL NET ===== */
+.neural{width:100%;height:100%;background:#000;position:relative;overflow:hidden}
+.neural canvas{width:100%;height:100%}
+
+/* ===== CAMERA ===== */
+.cam-view{position:relative;width:100%;height:100%;background:#111;overflow:hidden}
+.cam-feed{
+  width:100%;height:100%;object-fit:cover;filter:contrast(1.2) brightness(.8) hue-rotate(80deg);
+  background:linear-gradient(135deg,#0a0a0a,#1a2a1a);
+}
+.cam-overlay{position:absolute;inset:0;pointer-events:none}
+.cam-overlay .rec{position:absolute;top:10px;right:10px;color:var(--r);font-size:12px;font-weight:bold}
+.cam-overlay .rec::before{content:'● ';animation:blink 1s infinite}
+.cam-overlay .ts{position:absolute;bottom:10px;left:10px;font-size:11px;color:#aaa}
+.cam-overlay .cross{position:absolute;top:50%;left:50%;width:40px;height:40px;transform:translate(-50%,-50%)}
+.cam-overlay .cross::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,.3)}
+.cam-overlay .cross::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)}
+
+/* ===== PASSWORD CRACK ===== */
+.crack-display{
+  font-size:28px;letter-spacing:6px;text-align:center;
+  padding:20px;color:var(--g);font-weight:bold;
+  text-shadow:0 0 10px var(--g);
+}
+.crack-info{font-size:12px;color:#888;margin-top:10px}
+.crack-bar{height:8px;background:#111;border:1px solid #333;margin:10px 0}
+.crack-bar .fill{height:100%;background:var(--g);width:0%;transition:width .2s}
+
+/* ===== NUCLEAR ===== */
+.nuke{text-align:center;padding:20px}
+.nuke .warning{color:var(--r);font-size:24px;font-weight:bold;margin-bottom:20px;animation:blink 1s infinite}
+.nuke .codes{font-size:36px;color:var(--r);letter-spacing:8px;margin:20px 0;text-shadow:0 0 20px var(--r)}
+.nuke .btn-launch{
+  padding:12px 40px;font-size:16px;font-weight:bold;
+  background:transparent;border:2px solid var(--r);color:var(--r);
+  cursor:pointer;transition:all .3s;font-family:inherit;
+}
+.nuke .btn-launch:hover{background:var(--r);color:#000;box-shadow:0 0 30px var(--r)}
+
+/* ===== INTERPOL ===== */
+.interpol{text-align:center;padding:20px}
+.interpol .logo{font-size:48px;margin-bottom:10px}
+.interpol .db{font-size:13px;color:#aaa;margin:10px 0}
+.interpol .rec{
+  display:flex;justify-content:space-between;padding:8px 12px;
+  border-bottom:1px solid #222;font-size:12px;text-align:left;
+}
+.interpol .rec:hover{background:rgba(255,0,60,.1)}
+
+/* ===== MINIMAP ===== */
+.minimap{position:fixed;bottom:16px;left:16px;z-index:9997;
+  width:180px;height:120px;background:rgba(0,0,0,.8);
+  border:1px solid var(--border);border-radius:4px;overflow:hidden;
+}
+.minimap .label{position:absolute;top:4px;left:6px;font-size:9px;color:var(--g);z-index:1}
+.minimap canvas{width:100%;height:100%}
+
+/* ===== DESKTOP HINT ===== */
+.desktop-hint{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  z-index:9997;font-size:12px;color:#444;text-align:center;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0a0a}
+::-webkit-scrollbar-thumb{background:#1a3a1a;border-radius:3px}
+
+/* ===== BOOT SCREEN ===== */
+#boot{
+  position:fixed;inset:0;z-index:999999;background:#000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:14px;color:var(--g);padding:40px;text-align:left;
+}
+#boot .logo-boot{font-size:48px;font-weight:900;margin-bottom:30px;text-shadow:0 0 20px var(--g)}
+#boot .boot-lines{max-width:600px;line-height:2}
+#boot .boot-lines .ok{color:var(--g)}#boot .boot-lines .wait{color:var(--y)}#boot .boot-lines .err{color:var(--r)}
+#boot .enter-btn{
+  margin-top:30px;padding:10px 30px;border:1px solid var(--g);
+  background:transparent;color:var(--g);font-family:inherit;
+  font-size:14px;cursor:pointer;display:none;
+}
+#boot .enter-btn:hover{background:var(--g);color:#000}
+
+/* ===== COUNTDOWN ===== */
+.countdown{font-size:72px;font-weight:900;color:var(--r);text-shadow:0 0 30px var(--r);text-align:center;padding:20px}
+.countdown .lbl{font-size:14px;color:#f88;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<!-- ===== BOOT SCREEN ===== -->
+<div id="boot">
+  <div class="logo-boot">HACKEROS OS</div>
+  <div class="boot-lines" id="boot-lines"></div>
+  <button class="enter-btn" id="enter-btn" onclick="startSystem()">[ ENTER SYSTEM ]</button>
+</div>
+
+<!-- ===== DESKTOP ===== -->
+<div id="desktop"></div>
+
+<!-- ===== TOP BAR ===== -->
+<div class="topbar">
+  <span class="logo">◆ HACKEROS</span>
+  <span>v3.7.2</span>
+  <span class="sys-status">● SECURE</span>
+  <span class="time" id="clock"></span>
+</div>
+
+<!-- ===== DOCK ===== -->
+<div class="dock" id="dock"></div>
+
+<!-- ===== MINIMAP ===== -->
+<div class="minimap">
+  <span class="label">// NETMAP</span>
+  <canvas id="minimap-cv"></canvas>
+</div>
+
+<!-- ===== HINT ===== -->
+<div class="desktop-hint">点击右侧图标打开程序 · 拖动标题栏移动窗口 · 按 0-9 快速启动 · 空格关闭</div>
+
+<!-- ===== ALERT OVERLAY ===== -->
+<div class="alert-overlay" id="alert-overlay">
+  <div class="alert-box">
+    <h1 id="alert-title">⚠ ACCESS DENIED</h1>
+    <p id="alert-msg">UNAUTHORIZED ACCESS DETECTED</p>
+    <p style="margin-top:15px;font-size:11px;color:#666">// SYSTEM WILL SELF-DESTRUCT IN 10s //</p>
+  </div>
+</div>
+
+<!-- ===== MATRIX BG ===== -->
+<canvas id="matrix"></canvas>
+
+<script>
+// ========== CONFIG ==========
+const APPS = [
+  {id:'terminal',   icon:'💻', name:'Terminal',       hotkey:'1'},
+  {id:'hack',       icon:'⚔️', name:'Intruder',       hotkey:'2'},
+  {id:'crack',      icon:'🔑', name:'PwdCrack',       hotkey:'3'},
+  {id:'satellite',  icon:'🛰️', name:'SatTracker',     hotkey:'4'},
+  {id:'neural',     icon:'🧠', name:'NeuralNet',      hotkey:'5'},
+  {id:'camera',     icon:'📹', name:'CamFeed',        hotkey:'6'},
+  {id:'nuke',       icon:'☢️', name:'NukeControl',    hotkey:'7'},
+  {id:'interpol',   icon:'🚨', name:'InterpolDB',     hotkey:'8'},
+  {id:'matrix',     icon:'🌧️', name:'CodeRain',       hotkey:'9'},
+  {id:'miner',      icon:'⛏️', name:'CryptoMiner',    hotkey:'0'},
+];
+
+// ========== BOOT SEQUENCE ==========
+const bootLines = [
+  ['[  0.001]', 'Loading HACKEROS kernel...', 'ok'],
+  ['[  0.423]', 'Initializing hardware... OK', 'ok'],
+  ['[  0.891]', 'Mounting /dev/sda1... OK', 'ok'],
+  ['[  1.204]', 'Starting network stack...', 'wait'],
+  ['[  1.887]', 'Establishing TOR connection... OK', 'ok'],
+  ['[  2.156]', 'Bypassing firewall rules...', 'wait'],
+  ['[  2.934]', 'Spoofing MAC address... OK', 'ok'],
+  ['[  3.412]', 'Loading crypto modules... OK', 'ok'],
+  ['[  3.891]', 'Scanning for vulnerabilities...', 'wait'],
+  ['[  4.567]', 'Found 0 open ports (stealth mode)', 'ok'],
+  ['[  5.123]', 'Initializing GPU cracking cores... OK', 'ok'],
+  ['[  5.678]', 'Loading neural networks... OK', 'ok'],
+  ['[  6.234]', 'Connecting to C2 server...', 'wait'],
+  ['[  6.891]', 'Handshake complete. Encrypted channel active.', 'ok'],
+  ['[  7.345]', 'Loading payload library... 2,847 modules', 'ok'],
+  ['[  7.812]', 'Checking for updates... OK', 'ok'],
+  ['[  8.456]', 'Starting desktop environment...', 'wait'],
+  ['[  9.123]', 'All systems operational.', 'ok'],
+  ['', '', ''],
+  ['', 'Type "help" for available commands.', 'ok'],
+];
+
+async function runBoot(){
+  const c=document.getElementById('boot-lines');
+  for(const [t,m,s] of bootLines){
+    const cls=s==='ok'?'ok':s==='wait'?'wait':'err';
+    c.innerHTML+=`<div><span style="color:#444">${t}</span> <span class="${cls}">${m}</span></div>`;
+    await sleep(s==='wait'?600:200+Math.random()*200);
+  }
+  document.getElementById('enter-btn').style.display='block';
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+function startSystem(){
+  document.getElementById('boot').style.display='none';
+  initDock();
+  initMatrix();
+  initClock();
+  initMinimap();
+  // Auto-open terminal
+  openApp('terminal');
+}
+
+// ========== DOCK ==========
+function initDock(){
+  const dock=document.getElementById('dock');
+  APPS.forEach(app=>{
+    const btn=document.createElement('div');
+    btn.className='dock-btn';
+    btn.innerHTML=`${app.icon}<span class="tip">${app.name} [${app.hotkey}]</span>`;
+    btn.onclick=()=>openApp(app.id);
+    dock.appendChild(btn);
+  });
+}
+
+// ========== WINDOW MANAGER ==========
+let zIndex=100;
+let openWindows=[];
+
+function openApp(id){
+  if(openWindows.includes(id)){focusWin(id);return}
+  openWindows.push(id);
+  const app=APPS.find(a=>a.id===id);
+  const win=createWindow(app.name,app.icon);
+  win.dataset.id=id;
+  
+  const body=win.querySelector('.body');
+  switch(id){
+    case 'terminal':  body.appendChild(makeTerminal()); break;
+    case 'hack':      body.appendChild(makeHack()); break;
+    case 'crack':     body.appendChild(makeCrack()); break;
+    case 'satellite': body.appendChild(makeSatellite()); break;
+    case 'neural':    body.appendChild(makeNeural()); break;
+    case 'camera':    body.appendChild(makeCamera()); break;
+    case 'nuke':      body.appendChild(makeNuke()); break;
+    case 'interpol':  body.appendChild(makeInterpol()); break;
+    case 'matrix':    body.appendChild(makeMatrixRain()); break;
+    case 'miner':     body.appendChild(makeMiner()); break;
+  }
+  
+  document.getElementById('desktop').appendChild(win);
+  positionWin(win);
+  focusWin(id);
+  makeDraggable(win);
+}
+
+function createWindow(title,icon){
+  const w=document.createElement('div');
+  w.className='win';
+  w.innerHTML=`
+    <div class="titlebar">
+      <div class="dots"><div class="dot r" onclick="closeWin('${title}')"></div><div class="dot y" onclick="minWin(event,'${title}')"></div><div class="dot g" onclick="maxWin(event,'${title}')"></div></div>
+      <span class="ttl">${icon} ${title}</span>
+    </div>
+    <div class="body"></div>
+  `;
+  return w;
+}
+
+function positionWin(win){
+  const offset=openWindows.length*30;
+  win.style.left=(100+offset)+'px';
+  win.style.top=(60+offset)+'px';
+  win.style.width=(350+Math.random()*200)+'px';
+  win.style.height=(300+Math.random()*200)+'px';
+}
+
+function focusWin(id){
+  zIndex++;
+  const win=document.querySelector(`.win[data-id="${id}"]`);
+  if(win)win.style.zIndex=zIndex;
+}
+
+function closeWin(name){
+  const win=document.querySelector(`.win .ttl`);
+  // find by name
+  document.querySelectorAll('.win').forEach(w=>{
+    if(w.querySelector('.ttl').textContent.includes(name)){w.remove();openWindows=openWindows.filter(id=>id!==w.dataset.id)}
+  });
+}
+
+function minWin(e,name){
+  e.stopPropagation();
+  document.querySelectorAll('.win').forEach(w=>{
+    if(w.querySelector('.ttl').textContent.includes(name))w.style.display='none';
+  });
+}
+
+function maxWin(e,name){
+  e.stopPropagation();
+  document.querySelectorAll('.win').forEach(w=>{
+    if(w.querySelector('.ttl').textContent.includes(name)){
+      w.classList.toggle('maximized');
+    }
+  });
+}
+
+function makeDraggable(win){
+  const bar=win.querySelector('.titlebar');
+  let dx,dy;
+  bar.onmousedown=e=>{
+    if(e.target.classList.contains('dot'))return;
+    dx=e.clientX-win.offsetLeft;dy=e.clientY-win.offsetTop;
+    const move=e=>{win.style.left=(e.clientX-dx)+'px';win.style.top=(e.clientY-dy)+'px'};
+    document.onmousemove=move;
+    document.onmouseup=()=>{document.onmousemove=null;document.onmouseup=null};
+  };
+}
+
+// ========== TERMINAL ==========
+function makeTerminal(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`<div style="color:#0f0;font-size:12px;line-height:1.6" id="t-out">
+    Hackeros Terminal v3.7.2<br>Type <span style="color:#0ff">'help'</span> for commands.<br><br>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <span style="color:#0f0">root@hackeros:~$</span>
+    <input id="t-in" style="flex:1;background:transparent;border:none;color:#0f0;font-family:inherit;font-size:12px;outline:none" autofocus>
+  </div>`;
+  
+  setTimeout(()=>{
+    const input=c.querySelector('#t-in');
+    input.focus();
+    input.onkeydown=async e=>{
+      if(e.key==='Enter'){
+        const cmd=input.value.trim();
+        input.value='';
+        const out=c.querySelector('#t-out');
+        out.innerHTML+=`<div><span style="color:#0f0">root@hackeros:~$</span> ${cmd}</div>`;
+        await execCmd(cmd,out);
+        c.scrollTop=c.scrollHeight;
+      }
+    };
+    // Keep focus
+    c.onclick=()=>input.focus();
+  },100);
+  return c;
+}
+
+async function execCmd(cmd,out){
+  const cmds={
+    'help':()=>out.innerHTML+=`Available: <span style="color:#0ff">help scan crack exploit ddos nmap whoami uname ls rm -rf / exit</span><br>`,
+    'scan':async()=>{out.innerHTML+=`Scanning network...<br>`;await sleep(500);out.innerHTML+=`<span style="color:#0ff">192.168.1.1</span> - Open: 22,80,443<br><span style="color:#0ff">192.168.1.10</span> - Open: 21,22,3306<br><span style="color:#ff0">192.168.1.50</span> - VULNERABLE: MS17-010<br>`},
+    'crack':async()=>{out.innerHTML+=`Launching bruteforce on SSH...<br>`;for(let i=0;i<5;i++){await sleep(400);out.innerHTML+=`Trying password: <span style="color:#f88">${randStr(8)}</span>... FAILED<br>`}out.innerHTML+=`<span style="color:#0f0">SUCCESS: password=admin123!</span><br>`},
+    'exploit':async()=>{out.innerHTML+=`Searching exploits...<br>`;await sleep(600);out.innerHTML+=`Found: <span style="color:#f00">EternalBlue (MS17-010)</span><br>Launching payload...<br><span style="color:#0f0">[+] Meterpreter session opened!</span><br>`},
+    'ddos':async()=>{out.innerHTML+=`Initializing DDoS...<br>`;for(let i=0;i<8;i++){await sleep(300);out.innerHTML+=`[${i*125} bots] Flooding target... ${Math.floor(Math.random()*1000)} pps<br>`}out.innerHTML+=`<span style="color:#f00">TARGET OFFLINE</span><br>`},
+    'nmap':async()=>{out.innerHTML+=`Starting Nmap 7.94...<br>`;await sleep(800);out.innerHTML+=`PORT&nbsp;&nbsp;&nbsp;STATE&nbsp;&nbsp;SERVICE<br>22/tcp&nbsp;open&nbsp;&nbsp;ssh<br>80/tcp&nbsp;open&nbsp;&nbsp;http<br>443/tcp open&nbsp;&nbsp;https<br>3306/tcp open&nbsp;&nbsp;mysql<br>`},
+    'whoami':()=>out.innerHTML+=`root<br>`,
+    'uname':()=>out.innerHTML+=`Linux hackeros 6.8.0 #1 SMP x86_64 GNU/Linux<br>`,
+    'ls':()=>out.innerHTML+=`bin/  etc/  home/  opt/  root/  var/  .ssh/  payloads/  exploits/  tools/<br>`,
+    'exit':()=>out.innerHTML+=`logout<br>`,
+    'rm -rf /':async()=>{out.innerHTML+=`<span style="color:#f00">Are you sure? [y/N]</span> y<br>`;await sleep(500);out.innerHTML+=`<span style="color:#f00">*** DELETING SYSTEM FILES ***</span><br>`;for(let i=0;i<10;i++){await sleep(200);out.innerHTML+=`rm: /${randStr(6)}: Operation not permitted<br>`}},
+  };
+  const fn=cmds[cmd]||(()=>out.innerHTML+=`bash: ${cmd}: command not found<br>`);
+  await fn();
+}
+
+function randStr(n){return Math.random().toString(36).slice(2,n+2)}
+
+// ========== HACK / INTRUDER ==========
+function makeHack(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`
+    <div style="font-size:11px;color:#aaa;margin-bottom:10px">// Remote Intrusion Module v2.1</div>
+    <div class="hack-progress">
+      <div class="lbl"><span id="h-phase">Phase 1: Reconnaissance</span><span id="h-pct">0%</span></div>
+      <div class="bar"><div class="fill" id="h-bar"></div></div>
+    </div>
+    <div id="h-log" style="font-size:11px;line-height:1.6;color:#0f0;height:60%;overflow:auto"></div>
+    <button onclick="startHack()" style="margin-top:10px;padding:8px 20px;background:transparent;border:1px solid #0f0;color:#0f0;cursor:pointer;font-family:inherit">▶ START INTRUSION</button>
+  `;
+  return c;
+}
+
+async function startHack(){
+  const bar=document.getElementById('h-bar');
+  const pct=document.getElementById('h-pct');
+  const phase=document.getElementById('h-phase');
+  const log=document.getElementById('h-log');
+  log.innerHTML='';
+  const phases=[
+    ['Phase 1: Reconnaissance',['Whois lookup...','DNS enumeration...','Subdomain bruteforce...','Port scanning...','Service fingerprinting...','WAF detection...']],
+    ['Phase 2: Exploitation',['Testing SQL injection...','Checking XSS vectors...','Fuzzing upload endpoint...','VULNERABILITY FOUND: CVE-2024-XXXX','Uploading reverse shell...','Shell access gained!']],
+    ['Phase 3: Privilege Escalation',['Checking sudo perms...','Enumerating SUID binaries...','Exploiting kernel bug...','ROOT PRIVILEGES OBTAINED']],
+    ['Phase 4: Data Exfiltration',['Locating database config...','Dumping user table...','Encrypting payload...','Uploading to C2 server...','Covering tracks...']],
+  ];
+  let total=0;
+  for(const [p,steps] of phases){
+    phase.textContent=p;
+    for(const s of steps){
+      log.innerHTML+=`[${new Date().toLocaleTimeString()}] ${s}<br>`;
+      total+=100/(phases.length*steps.length);
+      bar.style.width=Math.min(total,100)+'%';
+      pct.textContent=Math.min(Math.floor(total),100)+'%';
+      log.scrollTop=log.scrollHeight;
+      await sleep(400+Math.random()*600);
+    }
+  }
+  log.innerHTML+=`<br><span style="color:#0f0;font-weight:bold">✓ INTRUSION COMPLETE - ALL OBJECTIVES ACHIEVED</span><br>`;
+}
+
+// ========== PASSWORD CRACK ==========
+function makeCrack(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`
+    <div style="font-size:11px;color:#aaa;margin-bottom:10px">// GPU Bruteforce Engine (4096 cores)</div>
+    <div class="crack-display" id="c-display">********</div>
+    <div class="crack-bar"><div class="fill" id="c-bar"></div></div>
+    <div class="crack-info" id="c-info">Target: admin@victim.com | Hash: sha256 | Speed: 0 H/s</div>
+    <div class="crack-info" id="c-tried">Tried: 0 | Found: 0</div>
+    <button onclick="startCrack()" style="margin-top:10px;padding:8px 20px;background:transparent;border:1px solid #0f0;color:#0f0;cursor:pointer;font-family:inherit">▶ START CRACKING</button>
+  `;
+  return c;
+}
+
+const DICT=['password','admin123','qwerty','letmein','welcome','12345678','monkey','dragon','baseball','iloveyou','master','shadow','superman','batman','trustno1'];
+
+async function startCrack(){
+  const disp=document.getElementById('c-display');
+  const bar=document.getElementById('c-bar');
+  const info=document.getElementById('c-info');
+  const tried=document.getElementById('c-tried');
+  let count=0;
+  const target=DICT[Math.floor(Math.random()*DICT.length)];
+  info.textContent=`Target: admin@victim.com | Hash: sha256 | Speed: ${Math.floor(Math.random()*5000+1000)} H/s`;
+  
+  for(let i=0;i<60;i++){
+    const guess=DICT[Math.floor(Math.random()*DICT.length)];
+    disp.textContent=guess;
+    count+=Math.floor(Math.random()*50+10);
+    tried.textContent=`Tried: ${count.toLocaleString()} | Found: 0`;
+    bar.style.width=Math.min(count/20,100)+'%';
+    await sleep(80+Math.random()*120);
+  }
+  disp.textContent=target;
+  disp.style.color='#0f0';
+  tried.innerHTML=`Tried: ${count.toLocaleString()} | <span style="color:#0f0">Found: 1 - "${target}"</span>`;
+}
+
+// ========== SATELLITE ==========
+function makeSatellite(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`
+    <div class="sat-map">
+      <div class="sat-grid"></div>
+      <div class="sat-scan"></div>
+      <div class="sat-crosshair"></div>
+      <div class="sat-target" id="sat-tgt" style="left:40%;top:35%"></div>
+      <div class="sat-target" id="sat-tgt2" style="left:65%;top:55%"></div>
+      <div class="sat-target" id="sat-tgt3" style="left:30%;top:70%"></div>
+      <div class="sat-coord" id="sat-coord">LAT: 00.0000 LON: 00.0000</div>
+    </div>
+  `;
+  setTimeout(()=>{
+    const coord=c.querySelector('#sat-coord');
+    setInterval(()=>{
+      coord.textContent=`LAT: ${(Math.random()*180-90).toFixed(4)} LON: ${(Math.random()*360-180).toFixed(4)}`;
+    },500);
+  },100);
+  return c;
+}
+
+// ========== NEURAL NET ==========
+function makeNeural(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`<div class="neural"><canvas id="nn-cv"></canvas></div>`;
+  setTimeout(initNeural,c.querySelector('canvas')?100:500);
+  return c;
+}
+
+function initNeural(){
+  const cv=document.getElementById('nn-cv');
+  if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const resize=()=>{cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight};
+  resize();window.addEventListener('resize',resize);
+  
+  const nodes=Array.from({length:30},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5}));
+  
+  function draw(){
+    ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(0,0,cv.width,cv.height);
+    nodes.forEach(n=>{
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<0||n.x>cv.width)n.vx*=-1;
+      if(n.y<0||n.y>cv.height)n.vy*=-1;
+    });
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<120){
+          ctx.strokeStyle=`rgba(0,255,65,${1-d/120})`;ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();
+        }
+      }
+    }
+    nodes.forEach(n=>{ctx.fillStyle='#0f0';ctx.beginPath();ctx.arc(n.x,n.y,2,0,Math.PI*2);ctx.fill()});
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ========== CAMERA ==========
+function makeCamera(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`
+    <div class="cam-view">
+      <div class="cam-feed" id="cam-feed"></div>
+      <div class="cam-overlay">
+        <div class="rec">REC</div>
+        <div class="cross"></div>
+        <div class="ts" id="cam-ts"></div>
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{
+    const ts=c.querySelector('#cam-ts');
+    const feed=c.querySelector('#cam-feed');
+    setInterval(()=>ts.textContent=new Date().toISOString().replace('T',' ').slice(0,19)+' UTC',1000);
+    // random noise
+    setInterval(()=>{
+      feed.style.filter=`contrast(${1+Math.random()*.3}) brightness(${.7+Math.random()*.3}) hue-rotate(${70+Math.random()*40}deg)`;
+    },300);
+  },100);
+  return c;
+}
+
+// ========== NUKE ==========
+function makeNuke(){
+  const c=document.createElement('div');
+  c.innerHTML=`
+    <div class="nuke">
+      <div class="warning">⚠ RESTRICTED ACCESS ⚠</div>
+      <div style="color:#aaa;font-size:13px;margin-bottom:20px">Strategic Defense Initiative Control Panel</div>
+      <div class="codes" id="nuke-code">XXXX-XXXX-XXXX</div>
+      <div style="font-size:12px;color:#666;margin-bottom:20px">Awaiting launch authorization...</div>
+      <button class="btn-launch" onclick="startNuke()">🔴 INITIATE LAUNCH SEQUENCE</button>
+    </div>
+  `;
+  return c;
+}
+
+async function startNuke(){
+  const code=document.getElementById('nuke-code');
+  // generate code
+  for(let i=0;i<3;i++){
+    const seg=Math.random().toString(36).slice(2,6).toUpperCase();
+    code.textContent=code.textContent.replace('XXXX',seg);
+    await sleep(500);
+  }
+  // countdown
+  const cd=document.createElement('div');
+  cd.className='countdown';
+  cd.innerHTML=`<div class="lbl">⚠ LAUNCH IMMINENT ⚠</div><div id="cd-num">10</div>`;
+  document.getElementById('desktop').appendChild(cd);
+  const w=createWindow('Self Destruct','☢️');
+  w.style.left='50%';w.style.top='50%';w.style.transform='translate(-50%,-50%)';
+  w.style.width='400px';
+  const body=w.querySelector('.body');
+  body.appendChild(cd);
+  document.getElementById('desktop').appendChild(w);
+  
+  for(let i=10;i>=0;i--){
+    document.getElementById('cd-num').textContent=i;
+    await sleep(1000);
+  }
+  showAlert('💥 DETONATION','TARGET DESTROYED. YIELD: 150KT');
+}
+
+// ========== INTERPOL ==========
+function makeInterpol(){
+  const records=[
+    ['WANTED','ShadowBroker','Cyber Terrorism','CRITICAL'],
+    ['WANTED','DarkByte','Ransomware','HIGH'],
+    ['WATCH','NullSec','DDoS Attacks','MEDIUM'],
+    ['WANTED','Phantom','Data Theft','HIGH'],
+    ['WATCH','CryptoKing','Money Laundering','LOW'],
+    ['WANTED','GhostNet','Espionage','CRITICAL'],
+    ['WATCH','ZeroCool','Hacktivism','MEDIUM'],
+  ];
+  const c=document.createElement('div');
+  c.innerHTML=`
+    <div class="interpol">
+      <div class="logo">🚨</div>
+      <div style="color:#fff;font-size:18px;font-weight:bold;letter-spacing:3px">INTERPOL</div>
+      <div style="color:var(--r);font-size:12px;margin-bottom:15px">GLOBAL DATABASE - RESTRICTED ACCESS</div>
+      <div style="text-align:left;max-height:280px;overflow:auto">
+        ${records.map(r=>`<div class="rec"><span>${r[0]}</span><span style="color:#fff">${r[1]}</span><span style="color:#888">${r[2]}</span><span style="color:${r[3]==='CRITICAL'?'#f00':r[3]==='HIGH'?'#f80':'#ff0'}">${r[3]}</span></div>`).join('')}
+      </div>
+    </div>
+  `;
+  return c;
+}
+
+// ========== MATRIX RAIN (window) ==========
+function makeMatrixRain(){
+  const c=document.createElement('div');
+  c.style.height='100%';
+  c.innerHTML=`<canvas id="m-cv" style="width:100%;height:100%"></canvas>`;
+  setTimeout(initMatrixWin,c.querySelector('canvas')?100:300);
+  return c;
+}
+
+function initMatrixWin(){
+  const cv=document.getElementById('m-cv');
+  if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const resize=()=>{cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight};
+  resize();
+  const chars='01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const fs=14,cols=Math.floor(cv.width/fs);
+  const drops=Array(cols).fill(0).map(()=>Math.random()*-100);
+  function draw(){
+    ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.font=fs+'px Courier New';
+    drops.forEach((y,i)=>{
+      const ch=chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillStyle=Math.random()>.98?'#fff':'#0f0';
+      ctx.fillText(ch,i*fs,y*fs);
+      if(y*fs>cv.height&&Math.random()>.975)drops[i]=0;
+      drops[i]++;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ========== CRYPTO MINER ==========
+function makeMiner(){
+  const c=document.createElement('div');
+  c.innerHTML=`
+    <div style="font-size:11px;color:#aaa;margin-bottom:10px">// XMR Mining Pool - stratum+tcp://pool.hackeros.sec:3333</div>
+    <div id="miner-stat" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:15px">
+      <div>Hashrate: <span id="m-hr" style="color:#0f0">0 H/s</span></div>
+      <div>Shares: <span id="m-sh" style="color:#0f0">0</span></div>
+      <div>Workers: <span id="m-wk" style="color:#0f0">8</span></div>
+      <div>Balance: <span id="m-bal" style="color:#ff0">0.00000000 XMR</span></div>
+    </div>
+    <div id="miner-log" style="font-size:11px;color:#0a0;height:120px;overflow:auto;line-height:1.5"></div>
+    <button onclick="startMiner()" style="margin-top:10px;padding:8px 20px;background:transparent;border:1px solid #0f0;color:#0f0;cursor:pointer;font-family:inherit">▶ START MINING</button>
+  `;
+  return c;
+}
+
+async function startMiner(){
+  const hr=document.getElementById('m-hr');
+  const sh=document.getElementById('m-sh');
+  const bal=document.getElementById('m-bal');
+  const log=document.getElementById('miner-log');
+  let shares=0,balance=0,hashrate=0;
+  log.innerHTML='[+] Connecting to mining pool...<br>';
+  await sleep(800);
+  log.innerHTML+='[+] Pool connection established<br>[+] Starting mining threads...<br>';
+  const iv=setInterval(()=>{
+    hashrate=Math.floor(Math.random()*2000+8000);
+    shares+=Math.floor(Math.random()*3);
+    balance+=Math.random()*.0001;
+    hr.textContent=hashrate.toLocaleString()+' H/s';
+    sh.textContent=shares;
+    bal.textContent=balance.toFixed(8)+' XMR';
+    if(Math.random()>.85)log.innerHTML+=`[${new Date().toLocaleTimeString()}] Share accepted (diff ${(Math.random()*100+50).toFixed(0)})<br>`;
+    log.scrollTop=log.scrollHeight;
+  },1000);
+}
+
+// ========== MATRIX BG ==========
+function initMatrix(){
+  const cv=document.getElementById('matrix');
+  const ctx=cv.getContext('2d');
+  const resize=()=>{cv.width=window.innerWidth;cv.height=window.innerHeight};
+  resize();window.addEventListener('resize',resize);
+  const chars='01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+  const fs=14,cols=cv.width/fs;
+  const drops=Array(Math.floor(cols)).fill(0).map(()=>Math.random()*100);
+  setInterval(()=>{
+    ctx.fillStyle='rgba(5,5,5,.1)';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.font=fs+'px Courier New';
+    drops.forEach((y,i)=>{
+      const ch=chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillStyle=Math.random()>.99?'#fff':'#0f0';
+      ctx.fillText(ch,i*fs,y*fs);
+      if(y*fs>cv.height&&Math.random()>.975)drops[i]=0;
+      drops[i]++;
+    });
+  },50);
+}
+
+// ========== CLOCK ==========
+function initClock(){
+  const el=document.getElementById('clock');
+  setInterval(()=>{
+    el.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})+' | '+new Date().toLocaleDateString();
+  },1000);
+}
+
+// ========== MINIMAP ==========
+function initMinimap(){
+  const cv=document.getElementById('minimap-cv');
+  const ctx=cv.getContext('2d');
+  const resize=()=>{cv.width=cv.parentElement.clientWidth;cv.height=cv.parentElement.clientHeight};
+  resize();
+  const nodes=Array.from({length:15},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,tx:Math.random()*cv.width,ty:Math.random()*cv.height}));
+  function draw(){
+    ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(0,0,cv.width,cv.height);
+    nodes.forEach(n=>{
+      n.x+=(n.tx-n.x)*.02;n.y+=(n.ty-n.y)*.02;
+      if(Math.random()>.99){n.tx=Math.random()*cv.width;n.ty=Math.random()*cv.height}
+    });
+    nodes.forEach((n,i)=>{
+      nodes.slice(i+1).forEach(m=>{
+        const d=Math.hypot(n.x-m.x,n.y-m.y);
+        if(d<60){ctx.strokeStyle=`rgba(0,255,65,${1-d/60})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(m.x,m.y);ctx.stroke()}
+      });
+    });
+    nodes.forEach(n=>{ctx.fillStyle='#0f0';ctx.beginPath();ctx.arc(n.x,n.y,1.5,0,Math.PI*2);ctx.fill()});
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ========== ALERT ==========
+function showAlert(title,msg){
+  document.getElementById('alert-title').textContent=title;
+  document.getElementById('alert-msg').textContent=msg;
+  document.getElementById('alert-overlay').style.display='flex';
+  setTimeout(()=>{document.getElementById('alert-overlay').style.display='none'},4000);
+}
+
+// ========== KEYBOARD SHORTCUTS ==========
+document.addEventListener('keydown',e=>{
+  // 0-9 hotkeys
+  if(e.key>='0'&&e.key<='9'){
+    const idx=parseInt(e.key);
+    const app=APPS[idx];
+    if(app)openApp(app.id);
+  }
+  // Space close
+  if(e.key===' '){
+    document.querySelectorAll('.win').forEach(w=>{
+      if(w.style.zIndex==zIndex)w.remove();
+    });
+  }
+  // Escape alert
+  if(e.key==='Escape')document.getElementById('alert-overlay').style.display='none';
+});
+
+// ========== START ==========
+runBoot();
+</script>
+</body>
+</html>

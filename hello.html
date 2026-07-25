@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑客 · 日记</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        :root {
+            --bg-image: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');
+            --blur-intensity: 20px;
+            --font-size-base: 16px;
+            
+            --bg-card: rgba(13, 18, 32, 0.2);
+            --border-color: rgba(0, 195, 255, 0.4);
+            --text-primary: #e0e7ff;
+            --text-secondary: #a0aec0;
+            --accent-blue: #00c3ff;
+            --accent-red: #ff3b3b;
+            --glow-blue: rgba(0, 195, 255, 0.3);
+            --overlay-opacity: 0.55;
+        }
+
+        body.theme-light {
+            --bg-card: rgba(255, 255, 255, 0.4);
+            --border-color: rgba(0, 100, 200, 0.5);
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --accent-blue: #007acc;
+            --overlay-opacity: 0.2;
+        }
+
+        body.theme-dark {
+            --bg-card: rgba(0, 0, 0, 0.5);
+            --border-color: rgba(100, 100, 100, 0.5);
+            --text-primary: #e2e8f0;
+            --text-secondary: #a0aec0;
+            --accent-blue: #63b3ed;
+            --overlay-opacity: 0.7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+            font-size: var(--font-size-base);
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            filter: blur(var(--blur-intensity));
+            z-index: -2;
+            transform: scale(1.05);
+            transition: filter 0.5s, background-image 0.5s;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(5, 10, 20, var(--overlay-opacity));
+            z-index: -1;
+            transition: background-color 0.5s;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-section {
+            grid-column: 1 / -1;
+            position: relative;
+            height: 450px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.5s;
+        }
+
+        .hero-section img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            filter: brightness(0.8);
+            position: absolute;
+            top: 0; left: 0;
+            z-index: -1;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 40px;
+            background: linear-gradient(to top, rgba(5, 10, 20, 0.95) 20%, transparent 100%);
+        }
+
+        .hero-overlay h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 0 0 15px var(--accent-blue);
+            letter-spacing: 2px;
+            transition: text-shadow 0.5s;
+        }
+
+        .hero-overlay .subtitle {
+            color: var(--accent-blue);
+            font-size: 18px;
+            letter-spacing: 4px;
+            margin-top: 10px;
+            transition: color 0.5s;
+        }
+
+        .content-card, .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 35px;
+            margin-bottom: 30px;
+            transition: background-color 0.5s, border-color 0.5s, box-shadow 0.3s;
+            backdrop-filter: blur(calc(var(--blur-intensity) * 0.8));
+            -webkit-backdrop-filter: blur(calc(var(--blur-intensity) * 0.8));
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .content-card:hover, .sidebar-card:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 40px var(--glow-blue);
+        }
+
+        .sidebar { display: flex; flex-direction: column; gap: 30px; }
+        .sidebar-card { padding: 25px; margin-bottom: 0; }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-primary);
+            font-size: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: color 0.5s, border-color 0.5s;
+        }
+        
+        .section-title .icon {
+            color: var(--accent-blue);
+            font-size: 24px;
+            transition: color 0.5s;
+        }
+
+        .game-details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+
+        .detail-item {
+            background: rgba(255,255,255,0.03);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-blue);
+            backdrop-filter: blur(5px);
+            transition: border-color 0.5s;
+        }
+
+        .detail-item h4 { color: var(--text-primary); font-size: 16px; margin-bottom: 8px; transition: color 0.5s;}
+        .detail-item p { font-size: 14px; color: var(--text-secondary); transition: color 0.5s; }
+
+        .start-game-btn {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, #0066cc, var(--accent-blue));
+            color: white;
+            text-align: center;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            letter-spacing: 2px;
+            margin-top: 20px;
+        }
+
+        .start-game-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px var(--glow-blue);
+        }
+        
+        .critical-text {
+            color: var(--accent-red);
+            font-weight: 700;
+            text-align: center;
+            font-size: 22px;
+            padding: 10px;
+            border: 1px dashed var(--accent-red);
+            border-radius: 4px;
+            margin: 20px 0;
+            background: rgba(255, 59, 59, 0.05);
+            transition: color 0.5s, border-color 0.5s;
+        }
+
+        .terminal-text {
+            font-family: 'Courier New', monospace;
+            background: rgba(5, 10, 20, 0.7);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #0f0;
+        }
+
+        .footer-note {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            color: #4a5568;
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 20px;
+            transition: border-color 0.5s;
+        }
+
+        .settings-group { margin-bottom: 20px; }
+        .settings-group label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .settings-group select, .settings-group input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.3);
+            color: var(--text-primary);
+            font-family: 'Noto Sans SC', sans-serif;
+            cursor: pointer;
+        }
+        .settings-group input[type="range"] { padding: 0; }
+        .value-display {
+            text-align: right;
+            font-size: 12px;
+            color: var(--accent-blue);
+            margin-top: 5px;
+        }
+        .theme-buttons { display: flex; gap: 10px; }
+        .theme-btn {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        .theme-btn.active {
+            background: var(--accent-blue);
+            color: #000;
+            font-weight: bold;
+            border-color: var(--accent-blue);
+        }
+        .reset-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            border: 1px dashed var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        .reset-btn:hover { background: rgba(255,255,255,0.05); }
+
+        .bg-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .bg-option {
+            height: 60px;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .bg-option:hover { transform: scale(1.05); }
+        .bg-option.active { border-color: var(--accent-blue); box-shadow: 0 0 10px var(--glow-blue); }
+        .bg-option span {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-size: 10px;
+            text-align: center;
+            padding: 2px;
+        }
+        .bg-option[data-type="random"] {
+            background: linear-gradient(135deg, #0066cc, #00c3ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bg-option[data-type="random"] span {
+            position: static;
+            background: transparent;
+            font-size: 12px;
+        }
+        .upload-wrapper {
+            position: relative;
+            width: 100%;
+            height: 60px;
+            border-radius: 6px;
+            border: 2px dashed var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        .upload-wrapper:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(0, 195, 255, 0.05); }
+        .upload-wrapper input { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        @media (max-width: 900px) {
+            .main-container { grid-template-columns: 1fr; }
+            .game-details-grid { grid-template-columns: 1fr; }
+            .hero-overlay h1 { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <header class="hero-section">
+        <img src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="深空背景">
+        <div class="hero-overlay">
+            <h1>Hacker Diary</h1>
+            <div class="subtitle">黑客日记</div>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-card">
+            <h2 class="section-title"><span class="icon">📋</span>内容概述</h2>
+            <p>你是一名黑客，在入侵一个机密信息网站时，收到了一个来自过去的信息</p>
+            <div class="critical-text">我们会重逢的，对吗？</div>
+            <p>你感到不可思议，这不是■■■■■■ 数据错误 ————</p>
+        </div>
+
+        <div class="content-card">
+            <h2 class="section-title"><span class="icon">⚙️</span>玩法逻辑</h2>
+            <p>这是一款推理解谜游戏，和主人公一起探寻真相。</p>
+            <div class="game-details-grid">
+                <div class="detail-item"><h4>身份设定</h4><p>扮演初出茅庐的黑客 </p></div>
+                <div class="detail-item"><h4>交互方式</h4><p>键盘⌨鼠标🖱操作</p></div>
+                <div class="detail-item"><h4>玩法</h4><p>寻找线索，运用线索，寻找真相</p></div>
+                <div class="detail-item"><h4>注意事项</h4><p>本游戏可能有一些恐怖元素，谨慎游玩</p></div>
+            </div>
+            <div class="critical-text" style="margin-top: 25px; font-size: 16px; border-style: solid;">
+                祝你游玩愉快
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h2 class="section-title"><span class="icon">📝</span>关于</h2>
+            <p>本游戏由枫徕&phi;做主要开发，AI进行优化和美化</p>
+            <p>本游戏已开源，项目地址：。。。</p>
+            <div class="footer-note" style="border:none; padding:0; margin-top:15px; text-align:left;">
+                免责声明：请勿将本游戏代入现实生活，其内容为虚构，如有雷同，纯属巧合
+            </div>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <div class="sidebar-card">
+            <a href="#" class="start-game-btn" id="startBtn">开始游戏</a>
+            <p style="text-align:center; margin-top:15px; font-size:13px;">预计耗时：∞</p>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>任务参数</h3>
+            <ul style="list-style:none; padding:0; font-size:14px;">
+                <li style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,0.1);"><span>推荐游玩设备</span><strong style="color:var(--text-primary);">电脑</strong></li>
+                <li style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,0.1);"><span>难度等级</span><strong style="color:var(--text-primary);">未知</strong></li>
+                <li style="display:flex; justify-content:space-between; padding:8px 0;"><span>技术门槛</span><strong style="color:var(--text-primary);">未知</strong></li>
+            </ul>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>内容标签</h3>
+            <div class="tag-list">
+                <span class="tag blue">奇幻</span>
+                <span class="tag red">微恐</span>
+                <span class="tag gray">逻辑推理</span>
+                <span class="tag blue">沉浸体验</span>
+                <span class="tag gray">多结局</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-card">
+            <h3>状态</h3>
+            <p>未知</p>
+        </div>
+
+        <div class="sidebar-card">
+            <h3>外观设置</h3>
+            
+            <div class="settings-group">
+                <label>色彩主题</label>
+                <div class="theme-buttons">
+                    <button class="theme-btn" data-theme="default">深空蓝</button>
+                    <button class="theme-btn" data-theme="light">亮色</button>
+                    <button class="theme-btn" data-theme="dark">暗色</button>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label>背景图片</label>
+                <div class="bg-options">
+                    <!-- 深空星云（固定） -->
+                    <div class="bg-option active"
+                         data-bg="url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80')"
+                         style="background-image: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80');">
+                        <span>深空星云</span>
+                    </div>
+
+                    <!-- mc酱（随机） -->
+                    <div class="bg-option"
+                         data-type="random"
+                         data-bg="url('https://api.imlcd.cn/bg/mc.php?return=img')"
+                         style="background-image: url('https://api.imlcd.cn/bg/mc.php?return=img');">
+                        <span>mc酱</span>
+                    </div>
+
+                    <!-- 风景（随机） -->
+                    <div class="bg-option"
+                         data-type="random"
+                         data-bg="url('https://api.imlcd.cn/bg/gq.php?return=img')"
+                         style="background-image: url('https://api.imlcd.cn/bg/gq.php?return=img');">
+                        <span>风景</span>
+                    </div>
+
+                    <!-- 动漫背景（随机） -->
+                    <div class="bg-option"
+                         data-type="random"
+                         data-bg="url('https://api.imlcd.cn/bg/acg.php?return=img')">
+                        <span>动漫背景</span>
+                    </div>
+
+                    <!-- 自定义上传 -->
+                    <div class="upload-wrapper">
+                        <span>点击上传</span>
+                        <input type="file" id="bgUpload" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label>背景模糊度</label>
+                <input type="range" id="blurRange" min="0" max="50" step="1">
+                <div class="value-display" id="blurValue">20px</div>
+            </div>
+
+            <div class="settings-group">
+                <label>字体大小</label>
+                <input type="range" id="fontRange" min="14" max="20" step="1">
+                <div class="value-display" id="fontValue">16px</div>
+            </div>
+
+            <button class="reset-btn" id="resetSettings">恢复默认设置</button>
+        </div>
+    </aside>
+
+    <div class="footer-note">
+        <p>© ■■■■ 客政网 | Hacker Diary.</p>
+        <p style="margin-top: 5px;">Internal Test Link: 。。。</p>
+    </div>
+</div>
+
+<script>
+document.getElementById('startBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    const btn = this;
+    btn.innerHTML = '> 正在同步...';
+    btn.style.pointerEvents = 'none';
+    setTimeout(() => { btn.innerHTML = '> 建立量子链路...'; }, 1000);
+    setTimeout(() => { btn.innerHTML = '> 警告：未知数据'; btn.style.background = 'linear-gradient(135deg, #cc0000, #ff3333)'; }, 2200);
+    setTimeout(() => { btn.innerHTML = '> 连接成功，祝你好运'; }, 3500);
+});
+
+const root = document.documentElement;
+const blurRange = document.getElementById('blurRange');
+const fontRange = document.getElementById('fontRange');
+const blurValue = document.getElementById('blurValue');
+const fontValue = document.getElementById('fontValue');
+const themeButtons = document.querySelectorAll('.theme-btn');
+const resetButton = document.getElementById('resetSettings');
+const bgOptions = document.querySelectorAll('.bg-option');
+const bgUpload = document.getElementById('bgUpload');
+const heroImg = document.querySelector('.hero-section img');
+
+const defaults = {
+    theme: 'default',
+    bg: "url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80')",
+    blur: 20,
+    fontSize: 16
+};
+
+function extractImageUrl(cssUrl) {
+    const match = cssUrl.match(/^url\(['"]?(.*?)['"]?\)$/);
+    return match ? match[1] : cssUrl;
+}
+
+function getCacheBuster() {
+    return `_t=${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function loadSettings() {
+    const savedTheme = localStorage.getItem('dss_theme') || defaults.theme;
+    const savedBg = localStorage.getItem('dss_bg') || defaults.bg;
+    const savedBlur = localStorage.getItem('dss_blur') || defaults.blur;
+    const savedFontSize = localStorage.getItem('dss_fontSize') || defaults.fontSize;
+
+    applyTheme(savedTheme);
+    applyBg(savedBg);
+    applyBlur(savedBlur);
+    applyFontSize(savedFontSize);
+
+    themeButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === savedTheme);
+    });
+
+    let matched = false;
+    bgOptions.forEach(opt => {
+        opt.classList.remove('active');
+        if (opt.dataset.bg === savedBg) {
+            opt.classList.add('active');
+            matched = true;
+        }
+    });
+
+    if (!matched && savedBg.includes('api.imlcd.cn')) {
+        const randomOption = document.querySelector('.bg-option[data-type="random"]');
+        if (randomOption) {
+            randomOption.classList.add('active');
+            matched = true;
+        }
+    }
+
+    if (!matched) {
+        document.querySelector('.bg-option').classList.add('active');
+    }
+
+    blurRange.value = savedBlur;
+    blurValue.textContent = `${savedBlur}px`;
+    fontRange.value = savedFontSize;
+    fontValue.textContent = `${savedFontSize}px`;
+}
+
+function applyTheme(theme) {
+    document.body.className = '';
+    if (theme !== 'default') {
+        document.body.classList.add(`theme-${theme}`);
+    }
+    localStorage.setItem('dss_theme', theme);
+}
+
+function applyBg(value) {
+    root.style.setProperty('--bg-image', value);
+    localStorage.setItem('dss_bg', value);
+    const imageUrl = extractImageUrl(value);
+    if (heroImg) {
+        heroImg.src = imageUrl;
+    }
+}
+
+function applyBlur(value) {
+    root.style.setProperty('--blur-intensity', `${value}px`);
+    localStorage.setItem('dss_blur', value);
+}
+
+function applyFontSize(value) {
+    root.style.setProperty('--font-size-base', `${value}px`);
+    localStorage.setItem('dss_fontSize', value);
+}
+
+themeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        applyTheme(btn.dataset.theme);
+        themeButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
+
+bgOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+        const type = opt.dataset.type;
+        const span = opt.querySelector('span');
+
+                if (type === 'random') {
+
+                    // ✅ 用 dataset 存原始文字（绝对可靠）
+                    if (!opt.dataset.text) {
+                        opt.dataset.text = opt.innerText.trim();
+                    }
+
+                    // ✅ 强写“加载中”
+                    opt.innerHTML = '<span>加载中...</span>';
+
+                    const baseApiUrl = extractImageUrl(opt.dataset.bg);
+                    const requestUrl = `${baseApiUrl}&${getCacheBuster()}`;
+
+                    // ✅ 立即切换背景
+                    applyBg(`url(${requestUrl})`);
+
+                    bgOptions.forEach(o => o.classList.remove('active'));
+                    opt.classList.add('active');
+
+                    // ✅ 主恢复（300ms）
+                    setTimeout(() => {
+                        opt.innerHTML = `<span>${opt.dataset.text}</span>`;
+                    }, 300);
+
+                    // ✅ 兜底恢复（1.5s，防止任何异常）
+                    setTimeout(() => {
+                        if (opt.innerText.includes('加载中')) {
+                            opt.innerHTML = `<span>${opt.dataset.text}</span>`;
+                        }
+                    }, 1500);
+
+                    return;
+                }
+
+        const bg = opt.dataset.bg;
+        if (!bg) return;
+        applyBg(bg);
+        bgOptions.forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+    });
+});
+
+bgUpload.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const base64String = event.target.result;
+        applyBg(`url(${base64String})`);
+        bgOptions.forEach(o => o.classList.remove('active'));
+    };
+    reader.readAsDataURL(file);
+});
+
+blurRange.addEventListener('input', (e) => {
+    const value = e.target.value;
+    applyBlur(value);
+    blurValue.textContent = `${value}px`;
+});
+
+fontRange.addEventListener('input', (e) => {
+    const value = e.target.value;
+    applyFontSize(value);
+    fontValue.textContent = `${value}px`;
+});
+
+resetButton.addEventListener('click', () => {
+    applyTheme(defaults.theme);
+    applyBg(defaults.bg);
+    applyBlur(defaults.blur);
+    applyFontSize(defaults.fontSize);
+
+    blurRange.value = defaults.blur;
+    blurValue.textContent = `${defaults.blur}px`;
+    fontRange.value = defaults.fontSize;
+    fontValue.textContent = `${defaults.fontSize}px`;
+
+    themeButtons.forEach(b => b.classList.remove('active'));
+    document.querySelector('.theme-btn[data-theme="default"]').classList.add('active');
+
+    bgOptions.forEach(o => o.classList.remove('active'));
+    document.querySelector('.bg-option[data-bg*="photo-1462331940025"]').classList.add('active');
+
+    alert('设置已恢复默认。');
+});
+
+loadSettings();
+</script>
+
+</body>
+</html>
